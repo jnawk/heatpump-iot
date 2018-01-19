@@ -4,11 +4,10 @@ import logging
 import time
 import json
 import subprocess
-import numpy
 
-import RPi.GPIO as GPIO
 import Adafruit_DHT
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+from sensor import Sensor
 
 HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
 ROOT_CA_PATH = '../root-CA.crt'
@@ -29,13 +28,13 @@ TOPICS = {
     'update_state': '$aws/things/40stokesDHT/shadow/update/delta'
 }
 
-class IoT:
+class IoT(object):
     """Main Class"""
     def __init__(self):
         self.humidity = None
         self.temperature = None
         self.function = None
-        self.last_update = None 
+        self.last_update = None
         self.last_heatpump_command = None
 
         # thresholds for heating / cooling, on / off
@@ -58,8 +57,7 @@ class IoT:
 
         self.mqtt_client = None
 
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(DHT_ONOFF_PIN, GPIO.OUT)
+        self.sensor = Sensor(SENSOR, DHT_PIN, DHT_ONOFF_PIN)
 
     def connect(self):
         """Connect to the IoT service"""
@@ -115,18 +113,18 @@ class IoT:
         try:
             desired_state = parsed['state']
         except KeyError as error:
-            self.logger.warning('key error\n' + str(error))
+            self.logger.warning('key error: %s', str(error))
             return
 
         target_state = {}
 
-        self.logger.debug("desired state: " + json.dumps(desired_state))
+        self.logger.debug("desired state: %s", json.dumps(desired_state))
 
         try:
             cooling_start = desired_state['cooling_start']
             target_state['cooling_start'] = cooling_start
         except KeyError as e:
-            self.logger.debug("key error: " + str(e))
+            self.logger.debug("key error: %s", str(e))
             cooling_start = None
             target_state['cooling_start'] = self.cooling_start
 
@@ -134,7 +132,7 @@ class IoT:
             cooling_stop = desired_state['cooling_stop']
             target_state['cooling_stop'] = cooling_stop
         except KeyError as e:
-            self.logger.debug("key error: " + str(e))
+            self.logger.debug("key error: %s", str(e))
             cooling_stop = None
             target_state['cooling_stop'] = self.cooling_stop
 
@@ -142,7 +140,7 @@ class IoT:
             heating_start = desired_state['heating_start']
             target_state['heating_start'] = heating_start
         except KeyError as e:
-            self.logger.debug("key error: " + str(e))
+            self.logger.debug("key error: %s", str(e))
             heating_start = None
             target_state['heating_start'] = self.heating_start
 
@@ -150,7 +148,7 @@ class IoT:
             heating_stop = desired_state['heating_stop']
             target_state['heating_stop'] = heating_stop
         except KeyError as e:
-            self.logger.debug("key error: " + str(e))
+            self.logger.debug("key error: %s", str(e))
             heating_stop = None
             target_state['heating_stop'] = self.heating_stop
 
@@ -164,13 +162,12 @@ class IoT:
             self.logger.warning('attempt to set invalid state')
             return
 
-        self.logger.debug("target state: " + json.dumps(target_state))
+        self.logger.debug("target state: %s", json.dumps(target_state))
 
         reported_state = {}
 
         if target_state['cooling_start'] is None or target_state['cooling_stop'] is None:
             self.logger.debug("incomplete or no cooling state")
-            pass
         else:
             if cooling_start is not None and cooling_start != self.cooling_start:
                 self.cooling_start = cooling_start
@@ -182,7 +179,6 @@ class IoT:
 
         if target_state['heating_start'] is None or target_state['heating_stop'] is None:
             self.logger.debug("incomplete or no heating state")
-            pass
         else:
             if heating_start is not None and heating_start != self.heating_start:
                 self.heating_start = heating_start
@@ -195,7 +191,7 @@ class IoT:
         # send state update
         message = {'state': {'reported': reported_state}}
         raw_message = json.dumps(message)
-        self.logger.debug("reported state: " + raw_message)
+        self.logger.debug("reported state: %s", raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
         except Exception:
@@ -225,7 +221,7 @@ class IoT:
 
         if command is not None:
             self.last_heatpump_command = now
-            self.logger.debug('Sending command to heatpump: ' + function)
+            self.logger.debug('Sending command to heatpump: %s', function)
             self.function = function
             if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command]) == 0:
                 reported_state = {'function': function}
@@ -278,22 +274,13 @@ class IoT:
 
     def send_sample(self):
         """Send state to IoT"""
-        GPIO.output(DHT_ONOFF_PIN, 1)
-        time.sleep(2)
-        humidity1, temperature1 = Adafruit_DHT.read_retry(SENSOR, DHT_PIN)
-        humidity2, temperature2 = Adafruit_DHT.read_retry(SENSOR, DHT_PIN)
-        humidity3, temperature3 = Adafruit_DHT.read_retry(SENSOR, DHT_PIN)
-        GPIO.output(DHT_ONOFF_PIN, 0)
-
-        temperature = round(numpy.median([temperature1, temperature2, temperature3]), 1)
-        humidity = round(numpy.median([humidity1, humidity2, humidity3]), 1)
+        humidity, temperature = self.sensor.read()
 
         reported_state = {}
         now = time.time()
         forced_update = self.last_update is None or now > self.last_update + 60
         self.logger.debug('last_update: ' + str(self.last_update) + ', now: ' + str(now) + ', force update: ' + str(self.last_update is None or now > self.last_update + 60) + ', t: ' + str(temperature) + ', h: ' + str(humidity))
         if humidity is not None:
-            humidity = round(humidity, 1)
             if forced_update or self.humidity is None or abs(humidity - self.humidity) > 0.2:
                 self.humidity = humidity
                 reported_state['humidity'] = humidity
@@ -301,29 +288,27 @@ class IoT:
             self.logger.debug('no humidity')
 
         if temperature is not None:
-            temperature = round(temperature, 1)
             if forced_update or self.temperature is None or abs(temperature - self.temperature) > 0.2:
                 self.temperature = temperature
                 reported_state['temperature'] = temperature
         else:
             self.logger.debug('no temperature')
 
-        if reported_state != {}:
-            self.last_update = now
-            message = {'state': {'reported': reported_state}}
-            raw_message = json.dumps(message)
-            self.logger.debug(raw_message)
-            try:
-                self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-            except Exception:
-                self.logger.warning('publish timeout, clearing local state')
-                self.humidity = None
-                self.temperature = None
-
-            return reported_state
-
-        else:
+        if reported_state == {}:
             return None
+
+        self.last_update = now
+        message = {'state': {'reported': reported_state}}
+        raw_message = json.dumps(message)
+        self.logger.debug(raw_message)
+        try:
+            self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
+        except Exception:
+            self.logger.warning('publish timeout, clearing local state')
+            self.humidity = None
+            self.temperature = None
+
+        return reported_state
 
 def main():
     """Program entrypoint"""
