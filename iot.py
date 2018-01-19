@@ -3,11 +3,11 @@
 import logging
 import time
 import json
-import subprocess
 
 import Adafruit_DHT
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from sensor import Sensor
+from heatpump import Heatpump
 
 HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
 ROOT_CA_PATH = '../root-CA.crt'
@@ -37,12 +37,6 @@ class IoT(object):
         self.last_update = None
         self.last_heatpump_command = None
 
-        # thresholds for heating / cooling, on / off
-        self.cooling_start = 24 # if hotter than
-        self.cooling_stop = 22  # once it is cooler than
-        self.heating_start = 16 # if cooler than
-        self.heating_stop = 18  # once it reaches
-
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
@@ -58,6 +52,12 @@ class IoT(object):
         self.mqtt_client = None
 
         self.sensor = Sensor(SENSOR, DHT_PIN, DHT_ONOFF_PIN)
+
+        self.heatpump = Heatpump()
+        self.heatpump.set_setpoints({'heating_start': 16,
+                                     'heating_stop': 18,
+                                     'cooling_stop': 22,
+                                     'cooling_start': 24})
 
     def connect(self):
         """Connect to the IoT service"""
@@ -96,14 +96,14 @@ class IoT(object):
         """State update accepted callback function"""
         pass
 
-    def shadow_update_rejected_callback(self, client, userdata, message):
+    def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
         self.logger.warning("State update rejected")
         self.humidity = None
         self.temperature = None
         self.function = None
 
-    def update_state_callback(self, client, userdata, message):
+    def update_state_callback(self, _client, _userdata, message):
         """Callback to process a desired state change"""
         self.logger.debug("Received new desired state:")
         self.logger.debug(message.payload)
@@ -116,77 +116,10 @@ class IoT(object):
             self.logger.warning('key error: %s', str(error))
             return
 
-        target_state = {}
-
         self.logger.debug("desired state: %s", json.dumps(desired_state))
 
-        try:
-            cooling_start = desired_state['cooling_start']
-            target_state['cooling_start'] = cooling_start
-        except KeyError as e:
-            self.logger.debug("key error: %s", str(e))
-            cooling_start = None
-            target_state['cooling_start'] = self.cooling_start
-
-        try:
-            cooling_stop = desired_state['cooling_stop']
-            target_state['cooling_stop'] = cooling_stop
-        except KeyError as e:
-            self.logger.debug("key error: %s", str(e))
-            cooling_stop = None
-            target_state['cooling_stop'] = self.cooling_stop
-
-        try:
-            heating_start = desired_state['heating_start']
-            target_state['heating_start'] = heating_start
-        except KeyError as e:
-            self.logger.debug("key error: %s", str(e))
-            heating_start = None
-            target_state['heating_start'] = self.heating_start
-
-        try:
-            heating_stop = desired_state['heating_stop']
-            target_state['heating_stop'] = heating_stop
-        except KeyError as e:
-            self.logger.debug("key error: %s", str(e))
-            heating_stop = None
-            target_state['heating_stop'] = self.heating_stop
-
-        heating_valid = target_state['heating_start'] < target_state['heating_stop']
-        cooling_valid = target_state['cooling_stop'] < target_state['cooling_start']
-        heating_is_less_than_cooling = target_state['heating_stop'] < target_state['cooling_stop']
-
-        if heating_valid and cooling_valid and heating_is_less_than_cooling:
-            pass
-        else:
-            self.logger.warning('attempt to set invalid state')
-            return
-
-        self.logger.debug("target state: %s", json.dumps(target_state))
-
-        reported_state = {}
-
-        if target_state['cooling_start'] is None or target_state['cooling_stop'] is None:
-            self.logger.debug("incomplete or no cooling state")
-        else:
-            if cooling_start is not None and cooling_start != self.cooling_start:
-                self.cooling_start = cooling_start
-                reported_state['cooling_start'] = self.cooling_start
-
-            if cooling_stop is not None and cooling_stop != self.cooling_stop:
-                self.cooling_stop = cooling_stop
-                reported_state['cooling_stop'] = self.cooling_stop
-
-        if target_state['heating_start'] is None or target_state['heating_stop'] is None:
-            self.logger.debug("incomplete or no heating state")
-        else:
-            if heating_start is not None and heating_start != self.heating_start:
-                self.heating_start = heating_start
-                reported_state['heating_start'] = self.heating_start
-
-            if heating_start is not None and heating_stop != self.heating_stop:
-                self.heating_stop = heating_stop
-                reported_state['heating_stop'] = self.heating_stop
+        self.heatpump.set_setpoints(desired_state)
+        reported_state = self.heatpump.get_setpoints()
 
         # send state update
         message = {'state': {'reported': reported_state}}
@@ -199,55 +132,29 @@ class IoT(object):
             self.humidity = None
             self.temperature = None
 
-    def heatpump_command(self, function):
-        """Send a command to the heatpump"""
-        now = time.time()
-        recent_update = self.last_heatpump_command is not None and self.last_heatpump_command + 60 > now
-        if recent_update and function == self.function:
-            # nothing to do
-            return
-
-        if function == 'cooling':
-            command = 'maxcold'
-
-        elif function == 'heating':
-            command = 'stokesheat'
-
-        elif function == 'shutdown':
-            command = 'stokesoff'
-
-        else:
-            command = None
-
-        if command is not None:
-            self.last_heatpump_command = now
-            self.logger.debug('Sending command to heatpump: %s', function)
-            self.function = function
-            if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command]) == 0:
-                reported_state = {'function': function}
-                message = {'state': {'reported': reported_state}}
-                raw_message = json.dumps(message)
-                try:
-                    self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-                except Exception:
-                    self.logger.warning('publish timeout, clearing local state')
-                    self.humidity = None
-                    self.temperature = None
-            else:
-                self.logger.warning('could not send command to heat pump')
-
     def process_state(self, state):
         """Determine what action (if any) to take based on the most recent state change"""
         try:
-            current_temperature = state['temperature']
-            if current_temperature > self.cooling_start:
-                self.heatpump_command('cooling')
+            heatpump_command = self.heatpump.get_action(state['temperature'])
+            if heatpump_command is None:
+                return
 
-            elif current_temperature < self.heating_start:
-                self.heatpump_command('heating')
+            function = heatpump_command['action']
+            self.logger.debug('Sending command to heatpump: %s', function)
+            if self.heatpump.send_command(heatpump_command) != 0:
+                self.logger.warning('could not send command to heat pump')
+                return
 
-            elif current_temperature > self.heating_stop and current_temperature < self.cooling_stop:
-                self.heatpump_command('shutdown')
+            self.function = function
+            reported_state = {'function': self.function}
+            message = {'state': {'reported': reported_state}}
+            raw_message = json.dumps(message)
+            try:
+                self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
+            except Exception:
+                self.logger.warning('publish timeout, clearing local state')
+                self.humidity = None
+                self.temperature = None
 
         except KeyError:
             pass
@@ -256,12 +163,7 @@ class IoT(object):
         """Send set points to IoT"""
         message = {
             'state': {
-                'reported': {
-                    'cooling_start': self.cooling_start,
-                    'cooling_stop': self.cooling_stop,
-                    'heating_start': self.heating_start,
-                    'heating_stop': self.heating_stop
-                }
+                'reported': self.heatpump.get_setpoints()
             }
         }
         raw_message = json.dumps(message)
@@ -279,7 +181,12 @@ class IoT(object):
         reported_state = {}
         now = time.time()
         forced_update = self.last_update is None or now > self.last_update + 60
-        self.logger.debug('last_update: ' + str(self.last_update) + ', now: ' + str(now) + ', force update: ' + str(self.last_update is None or now > self.last_update + 60) + ', t: ' + str(temperature) + ', h: ' + str(humidity))
+        self.logger.debug('last_update: %s, now: %s, force update: %s, t: %s, h: %s',
+                          str(self.last_update),
+                          str(now),
+                          str(self.last_update is None or now > self.last_update + 60),
+                          str(temperature),
+                          str(humidity))
         if humidity is not None:
             if forced_update or self.humidity is None or abs(humidity - self.humidity) > 0.2:
                 self.humidity = humidity
