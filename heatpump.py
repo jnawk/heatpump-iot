@@ -69,6 +69,9 @@ class Heatpump(object):
         elif self._is_goldielocks(temperature):
             return SHUTDOWN
 
+        elif self._has_heating() and self._has_cooling():
+            return None
+            
         # if we succeed either of these next two, then we have partial configuration
         elif self._has_heating() and temperature > self.state[_H0]:
             return SHUTDOWN
