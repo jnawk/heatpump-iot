@@ -3,6 +3,7 @@ import time
 import atexit
 from numpy import median
 import RPi.GPIO as GPIO
+import Adafruit_DHT
 
 class Sensor(object):
     """Sensor class"""
