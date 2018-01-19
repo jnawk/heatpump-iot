@@ -5,6 +5,7 @@ import time
 import json
 import subprocess
 
+import Adafruit_DHT
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from sensor import Sensor
 
