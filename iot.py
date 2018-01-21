@@ -155,7 +155,7 @@ class IoT(object):
         raw_message = json.dumps(message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception exc:
+        except Exception as exc:
             logger.warning('publish timeout, clearing local state')
             logger.debug('%s', type(exc))
             self.humidity = None
@@ -220,11 +220,11 @@ if __name__ == '__main__':
     FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     STREAM_HANDLER = logging.StreamHandler()
     STREAM_HANDLER.setFormatter(FORMATTER)
-    logger = logging.getLogger("AWSIoTPythonSDK")
+    logger = logging.getLogger("AWSIoTPythonSDK") # pylint: disable=invalid-name
     logger.setLevel(logging.WARNING)
     logger.addHandler(STREAM_HANDLER)
 
-    logger = logging.getLogger("40stokesDHT")
+    logger = logging.getLogger("40stokesDHT") # pylint: disable=invalid-name
     logger.setLevel(logging.DEBUG)
     logger.addHandler(STREAM_HANDLER)
     main()
