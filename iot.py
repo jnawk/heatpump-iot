@@ -113,8 +113,9 @@ class IoT(object):
         logger.debug("reported state: %s", raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception:
+        except Exception as exc:
             logger.warning('publish timeout, clearing local state')
+            logger.debug('%s', type(exc))
             self.humidity = None
             self.temperature = None
 
@@ -137,8 +138,9 @@ class IoT(object):
             raw_message = json.dumps(message)
             try:
                 self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-            except Exception:
+            except Exception as exc:
                 logger.warning('publish timeout, clearing local state')
+                logger.debug('%s', type(exc))
                 self.humidity = None
                 self.temperature = None
 
@@ -197,8 +199,9 @@ class IoT(object):
         logger.debug(raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception:
+        except Exception as exc:
             logger.warning('publish timeout, clearing local state')
+            logger.debug('%s', type(exc))
             self.humidity = None
             self.temperature = None
 
