@@ -18,9 +18,6 @@ SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 22
 DHT_ONOFF_PIN = 18
 
-LOGGER = None
-MQTT_CLIENT = None
-
 TOPICS = {
     'shadow_update': '$aws/things/40stokesDHT/shadow/update',
     'shadow_update_accepted': '$aws/things/40stokesDHT/shadow/update/accepted',
@@ -37,17 +34,6 @@ class IoT(object):
         self.last_update = None
         self.last_heatpump_command = None
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(formatter)
-
-        logger = logging.getLogger("AWSIoTPythonSDK")
-        logger.setLevel(logging.WARNING)
-        logger.addHandler(stream_handler)
-
-        self.logger = logging.getLogger("40stokesDHT")
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(stream_handler)
 
         self.mqtt_client = None
 
@@ -61,7 +47,7 @@ class IoT(object):
 
     def connect(self):
         """Connect to the IoT service"""
-        self.logger.debug('connecting...')
+        logger.debug('connecting...')
         mqtt_client = AWSIoTMQTTClient(CLIENT_ID)
         mqtt_client.configureEndpoint(HOST, 8883)
         mqtt_client.configureCredentials(ROOT_CA_PATH, PRIVATE_KEY_PATH, CERTIFICATE_PATH)
@@ -78,7 +64,7 @@ class IoT(object):
 
     def subscribe(self):
         """Set up MQTT subscriptions"""
-        self.logger.debug('subscribing...')
+        logger.debug('subscribing...')
         self.mqtt_client.subscribe(
             TOPICS['shadow_update_accepted'],
             1,
@@ -98,25 +84,25 @@ class IoT(object):
 
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
-        self.logger.warning("State update rejected")
+        logger.warning("State update rejected")
         self.humidity = None
         self.temperature = None
         self.function = None
 
     def update_state_callback(self, _client, _userdata, message):
         """Callback to process a desired state change"""
-        self.logger.debug("Received new desired state:")
-        self.logger.debug(message.payload)
+        logger.debug("Received new desired state:")
+        logger.debug(message.payload)
 
         parsed = json.loads(message.payload)
 
         try:
             desired_state = parsed['state']
         except KeyError as error:
-            self.logger.warning('key error: %s', str(error))
+            logger.warning('key error: %s', str(error))
             return
 
-        self.logger.debug("desired state: %s", json.dumps(desired_state))
+        logger.debug("desired state: %s", json.dumps(desired_state))
 
         self.heatpump.set_setpoints(desired_state)
         reported_state = self.heatpump.get_setpoints()
@@ -124,11 +110,11 @@ class IoT(object):
         # send state update
         message = {'state': {'reported': reported_state}}
         raw_message = json.dumps(message)
-        self.logger.debug("reported state: %s", raw_message)
+        logger.debug("reported state: %s", raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
         except Exception:
-            self.logger.warning('publish timeout, clearing local state')
+            logger.warning('publish timeout, clearing local state')
             self.humidity = None
             self.temperature = None
 
@@ -140,9 +126,9 @@ class IoT(object):
                 return
 
             function = heatpump_command['action']
-            self.logger.debug('Sending command to heatpump: %s', function)
+            logger.debug('Sending command to heatpump: %s', function)
             if self.heatpump.send_command(heatpump_command) != 0:
-                self.logger.warning('could not send command to heat pump')
+                logger.warning('could not send command to heat pump')
                 return
 
             self.function = function
@@ -152,7 +138,7 @@ class IoT(object):
             try:
                 self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
             except Exception:
-                self.logger.warning('publish timeout, clearing local state')
+                logger.warning('publish timeout, clearing local state')
                 self.humidity = None
                 self.temperature = None
 
@@ -169,8 +155,9 @@ class IoT(object):
         raw_message = json.dumps(message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception:
-            self.logger.warning('publish timeout, clearing local state')
+        except Exception exc:
+            logger.warning('publish timeout, clearing local state')
+            logger.debug('%s', type(exc))
             self.humidity = None
             self.temperature = None
 
@@ -181,25 +168,25 @@ class IoT(object):
         reported_state = {}
         now = time.time()
         forced_update = self.last_update is None or now > self.last_update + 60
-        self.logger.debug('last_update: %s, now: %s, force update: %s, t: %s, h: %s',
-                          str(self.last_update),
-                          str(now),
-                          str(self.last_update is None or now > self.last_update + 60),
-                          str(temperature),
-                          str(humidity))
+        logger.debug('last_update: %s, now: %s, force update: %s, t: %s, h: %s',
+                     str(self.last_update),
+                     str(now),
+                     str(self.last_update is None or now > self.last_update + 60),
+                     str(temperature),
+                     str(humidity))
         if humidity is not None:
             if forced_update or self.humidity is None or abs(humidity - self.humidity) > 0.2:
                 self.humidity = humidity
                 reported_state['humidity'] = humidity
         else:
-            self.logger.debug('no humidity')
+            logger.debug('no humidity')
 
         if temperature is not None:
             if forced_update or self.temperature is None or abs(temperature - self.temperature) > 0.2:
                 self.temperature = temperature
                 reported_state['temperature'] = temperature
         else:
-            self.logger.debug('no temperature')
+            logger.debug('no temperature')
 
         if reported_state == {}:
             return None
@@ -207,11 +194,11 @@ class IoT(object):
         self.last_update = now
         message = {'state': {'reported': reported_state}}
         raw_message = json.dumps(message)
-        self.logger.debug(raw_message)
+        logger.debug(raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
         except Exception:
-            self.logger.warning('publish timeout, clearing local state')
+            logger.warning('publish timeout, clearing local state')
             self.humidity = None
             self.temperature = None
 
@@ -230,4 +217,14 @@ def main():
         time.sleep(2)
 
 if __name__ == '__main__':
+    FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    STREAM_HANDLER = logging.StreamHandler()
+    STREAM_HANDLER.setFormatter(FORMATTER)
+    logger = logging.getLogger("AWSIoTPythonSDK")
+    logger.setLevel(logging.WARNING)
+    logger.addHandler(STREAM_HANDLER)
+
+    logger = logging.getLogger("40stokesDHT")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(STREAM_HANDLER)
     main()
