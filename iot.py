@@ -6,6 +6,7 @@ import json
 
 import Adafruit_DHT
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 from sensor import Sensor
 from heatpump import Heatpump
 
@@ -113,9 +114,8 @@ class IoT(object):
         logger.debug("reported state: %s", raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception as exc:
+        except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            logger.debug('%s', type(exc))
             self.humidity = None
             self.temperature = None
 
@@ -138,9 +138,8 @@ class IoT(object):
             raw_message = json.dumps(message)
             try:
                 self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-            except Exception as exc:
+            except publishTimeoutException:
                 logger.warning('publish timeout, clearing local state')
-                logger.debug('%s', type(exc))
                 self.humidity = None
                 self.temperature = None
 
@@ -157,9 +156,8 @@ class IoT(object):
         raw_message = json.dumps(message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception as exc:
+        except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            logger.debug('%s', type(exc))
             self.humidity = None
             self.temperature = None
 
@@ -199,9 +197,8 @@ class IoT(object):
         logger.debug(raw_message)
         try:
             self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
-        except Exception as exc:
+        except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            logger.debug('%s', type(exc))
             self.humidity = None
             self.temperature = None
 
