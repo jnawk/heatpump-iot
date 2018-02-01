@@ -2,8 +2,8 @@
 import time
 import atexit
 from numpy import median
-import RPi.GPIO as GPIO
-import Adafruit_DHT
+import RPi.GPIO as GPIO #pylint: disable=import-error
+import Adafruit_DHT #pylint: disable=import-error
 
 ON = 1
 OFF = 0

@@ -1,8 +1,10 @@
+"""Test cases for heatpump"""
 import unittest
 from controller import DEFAULT_SETPOINTS
-from heatpump import *
+from heatpump import Heatpump, H1, H0, C0, C1, START_HEATING, SHUTDOWN, START_COOLING
 
 class HeatpumpTest(unittest.TestCase):
+    """Test cases for Heatpump"""
     def setUp(self):
         self.heatpump = Heatpump()
         self.heatpump.setpoints = DEFAULT_SETPOINTS
@@ -62,6 +64,7 @@ class HeatpumpTest(unittest.TestCase):
             self.heatpump.setpoints = {C1: None}
 
     def test_set_crazy_params(self):
+        """Verifies the heatpump barfs when given backards values"""
         with self.assertRaises(ValueError):
             self.heatpump.setpoints = {H1: 10, H0: 5}
 
