@@ -2,28 +2,47 @@
 """Script to handle the Heat Pump at 40 Stokes Valley Road, AWS IoT connected."""
 import logging
 import time
-import json
+from copy import deepcopy
 
-import Adafruit_DHT
-from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
-from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
-from sensor import Sensor
-from heatpump import Heatpump
+try:
+    import Adafruit_DHT
+    from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
+except ImportError:
+    if __name__ == '_main__':
+        raise
+
+from heatpump import Heatpump, H1, H0, C0, C1
+
+try:
+    from sensor import Sensor
+    from iot import IoT, Credentials
+except ImportError:
+    if __name__ == '_main__':
+        raise
+
+try:
+    SENSOR = Adafruit_DHT.DHT22
+except NameError:
+    if __name__ == '_main__':
+        raise
 
 HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
 ROOT_CA_PATH = '../root-CA.crt'
 CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
 CLIENT_ID = '40stokesDHT'
-SENSOR = Adafruit_DHT.DHT22
 DHT_PIN = 22
 DHT_ONOFF_PIN = 18
 
+DEFAULT_SETPOINTS = {H1: 16, H0: 18, C0: 22, C1: 24}
+
+SHADOW_UPDATE_TOPIC = '$aws/things/40stokesDHT/shadow/update'
+
 TOPICS = {
-    'shadow_update': '$aws/things/40stokesDHT/shadow/update',
-    'shadow_update_accepted': '$aws/things/40stokesDHT/shadow/update/accepted',
-    'shadow_update_rejected': '$aws/things/40stokesDHT/shadow/update/rejected',
-    'update_state': '$aws/things/40stokesDHT/shadow/update/delta'
+    'shadow_update': SHADOW_UPDATE_TOPIC,
+    'shadow_update_accepted': '%s/%s' % (SHADOW_UPDATE_TOPIC, 'accepted'),
+    'shadow_update_rejected': '%s/%s' % (SHADOW_UPDATE_TOPIC, 'rejected'),
+    'update_state': '%s/%s' % (SHADOW_UPDATE_TOPIC, 'delta')
 }
 
 class Controller(object):
