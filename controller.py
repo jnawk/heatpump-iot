@@ -1,5 +1,30 @@
 #!/usr/bin/env python
-"""Script to handle the Heat Pump at 40 Stokes Valley Road, AWS IoT connected."""
+"""
+Script to handle the Heat Pump at 40 Stokes Valley Road, AWS IoT connected.
+
+V1 board:
+    Input Pins:
+        Pin 4:  Photo Transistor
+        Pin 22: DHT22
+    Output Pins:
+        Pin 18: DHT22 On/Off
+        Pin 23: IR LED
+
+V2 board:
+    Input Pins:
+        Pin 4:  Photo Transistor
+        Pin 22: DHT22
+        Pin 24: LED Monitor Output
+    Output Pins:
+        Pin 17: LED Monitor Input On/Off*
+        Pin 18: DHT22 On/Off - Active High
+        Pin 23: IR LED - Active High
+        Pin 25: LED Monitor Output On/Off - Active Low
+
+        *This is actually connected to the D0 pin on the 74HC373N (Pin 3).
+        The cathode of the LEDs are connected to the LE Pin on the 74H373N
+        (Pin 11), which is Active High.
+"""
 import logging
 import time
 from copy import deepcopy
