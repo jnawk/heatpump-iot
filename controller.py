@@ -53,54 +53,19 @@ class Controller(object):
         self.function = None
         self.last_update = None
         self.last_heatpump_command = None
-
-
-        self.mqtt_client = None
-
-        self.sensor = Sensor(SENSOR, DHT_PIN, DHT_ONOFF_PIN)
-
-        self.heatpump = Heatpump()
-        self.heatpump.set_setpoints({'heating_start': 16,
-                                     'heating_stop': 18,
-                                     'cooling_stop': 22,
-                                     'cooling_start': 24})
-
-    def connect(self):
-        """Connect to the IoT service"""
-        logger.debug('connecting...')
-        mqtt_client = AWSIoTMQTTClient(CLIENT_ID)
-        mqtt_client.configureEndpoint(HOST, 8883)
-        mqtt_client.configureCredentials(ROOT_CA_PATH, PRIVATE_KEY_PATH, CERTIFICATE_PATH)
-
-        # AWSIoTMQTTClient connection configuration
-        mqtt_client.configureAutoReconnectBackoffTime(1, 32, 20)
-        mqtt_client.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
-        mqtt_client.configureDrainingFrequency(2)  # Draining: 2 Hz
-        mqtt_client.configureConnectDisconnectTimeout(10)  # 10 sec
-        mqtt_client.configureMQTTOperationTimeout(5)  # 5 sec
-
-        mqtt_client.connect()
-        self.mqtt_client = mqtt_client
+        self.sensor = None
+        self.heatpump = None
+        self.iot = None
 
     def subscribe(self):
         """Set up MQTT subscriptions"""
         logger.debug('subscribing...')
-        self.mqtt_client.subscribe(
-            TOPICS['shadow_update_accepted'],
-            1,
-            self.shadow_update_accepted_callback)
-        self.mqtt_client.subscribe(
+        self.iot.subscribe(
             TOPICS['shadow_update_rejected'],
-            1,
             self.shadow_update_rejected_callback)
-        self.mqtt_client.subscribe(
+        self.iot.subscribe(
             TOPICS['update_state'],
-            1,
             self.update_state_callback)
-
-    def shadow_update_accepted_callback(self, client, userdata, message):
-        """State update accepted callback function"""
-        pass
 
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
@@ -112,27 +77,24 @@ class Controller(object):
     def update_state_callback(self, _client, _userdata, message):
         """Callback to process a desired state change"""
         logger.debug("Received new desired state:")
-        logger.debug(message.payload)
-
-        parsed = json.loads(message.payload)
+        logger.debug(message)
 
         try:
-            desired_state = parsed['state']
+            desired_state = message['state']
         except KeyError as error:
             logger.warning('key error: %s', str(error))
             return
 
-        logger.debug("desired state: %s", json.dumps(desired_state))
+        logger.debug("desired state: %s", desired_state)
 
-        self.heatpump.set_setpoints(desired_state)
-        reported_state = self.heatpump.get_setpoints()
+        self.heatpump.setpoints = desired_state
+        reported_state = self.heatpump.setpoints
 
         # send state update
         message = {'state': {'reported': reported_state}}
-        raw_message = json.dumps(message)
-        logger.debug("reported state: %s", raw_message)
+        logger.debug("reported state: %s", message)
         try:
-            self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
+            self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.humidity = None
@@ -154,9 +116,8 @@ class Controller(object):
             self.function = function
             reported_state = {'function': self.function}
             message = {'state': {'reported': reported_state}}
-            raw_message = json.dumps(message)
             try:
-                self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
+                self.iot.publish(TOPICS['shadow_update'], message)
             except publishTimeoutException:
                 logger.warning('publish timeout, clearing local state')
                 self.humidity = None
@@ -174,7 +135,7 @@ class Controller(object):
         }
         raw_message = json.dumps(message)
         try:
-            self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
+            self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.humidity = None
@@ -215,7 +176,7 @@ class Controller(object):
         raw_message = json.dumps(message)
         logger.debug(raw_message)
         try:
-            self.mqtt_client.publish(TOPICS['shadow_update'], raw_message, 1)
+            self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.humidity = None
