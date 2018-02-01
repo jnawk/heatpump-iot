@@ -70,6 +70,14 @@ TOPICS = {
     'update_state': '%s/%s' % (SHADOW_UPDATE_TOPIC, 'delta')
 }
 
+_FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_STREAM_HANDLER = logging.StreamHandler()
+_STREAM_HANDLER.setFormatter(_FORMATTER)
+
+logger = logging.getLogger("40stokesDHT") # pylint: disable=invalid-name
+logger.addHandler(_STREAM_HANDLER)
+
+
 class Controller(object):
     """Main Class"""
     def __init__(self):
@@ -249,14 +257,10 @@ def main():
         time.sleep(2)
 
 if __name__ == '__main__':
-    FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    STREAM_HANDLER = logging.StreamHandler()
-    STREAM_HANDLER.setFormatter(FORMATTER)
+    logger.setLevel(logging.DEBUG)
+
     logger = logging.getLogger("AWSIoTPythonSDK") # pylint: disable=invalid-name
     logger.setLevel(logging.WARNING)
-    logger.addHandler(STREAM_HANDLER)
+    logger.addHandler(_STREAM_HANDLER)
 
-    logger = logging.getLogger("40stokesDHT") # pylint: disable=invalid-name
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(STREAM_HANDLER)
     main()
