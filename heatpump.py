@@ -8,10 +8,10 @@ START_COOLING = {_A: 'cooling', _C: 'maxcold'}
 SHUTDOWN = {_A: 'shutdown', _C: 'stokesoff'}
 START_HEATING = {_A: 'heating', _C: 'stokesheat'}
 
-_H1 = 'heating_start'
-_H0 = 'heating_stop'
-_C0 = 'cooling_stop'
-_C1 = 'cooling_start'
+H1 = 'heating_start'
+H0 = 'heating_stop'
+C0 = 'cooling_stop'
+C1 = 'cooling_start'
 
 _NEEDS_SET = '%s needs to be set'
 _BACKWARDS = '%s needs to be less than %s'
@@ -19,64 +19,48 @@ _BACKWARDS = '%s needs to be less than %s'
 class Heatpump(object):
     """Heatpump class"""
     def __init__(self):
-        self.state = {_H1: None,
-                      _H0: None,
-                      _C0: None,
-                      _C1: None}
+        self._setpoints = {H1: None,
+                           H0: None,
+                           C0: None,
+                           C1: None}
+       self._current_action = None
 
-    def set_setpoints(self, setpoints):
-        """Updates the setpoints"""
-        target = {_H1: setpoints[_H1] if setpoints.has_key(_H1) else self.state[_H1],
-                  _H0: setpoints[_H0] if setpoints.has_key(_H0) else self.state[_H0],
-                  _C0: setpoints[_C0] if setpoints.has_key(_C0) else self.state[_C0],
-                  _C1: setpoints[_C1] if setpoints.has_key(_C1) else self.state[_C1]}
-
-        if target[_H1] is None:
-            raise ValueError(_NEEDS_SET % _H1)
-
-        if target[_H0] is None:
-            raise ValueError(_NEEDS_SET % _H0)
-
-        if target[_H1] >= target[_H0]:
-            raise ValueError(_BACKWARDS % (_H1, _H0))
-
-        if target[_C0] is None:
-            raise ValueError(_NEEDS_SET % _C0)
-
-        if target[_C1] is None:
-            raise ValueError(_NEEDS_SET % _C1)
-
-        if target[_C0] >= target[_C1]:
-            raise ValueError(_BACKWARDS % (_C0, _C1))
-
-        if target[_H0] >= target[_C0]:
-            raise ValueError(_BACKWARDS % (_H0, _C0))
-
-        self.state = target
-
-    def get_setpoints(self):
+    @property
+    def setpoints(self):
         """Returns the setpoints"""
-        return self.state
+        return self._setpoints
+
+    @property
+    def _current_action(self):
+        return _current_action
+
+    @setpoints.setter
+    def setpoints(self, setpoints):
+        """Updates the setpoints"""
+        target = {H1: setpoints[H1] if setpoints.has_key(H1) else self._setpoints[H1],
+                  H0: setpoints[H0] if setpoints.has_key(H0) else self._setpoints[H0],
+                  C0: setpoints[C0] if setpoints.has_key(C0) else self._setpoints[C0],
+                  C1: setpoints[C1] if setpoints.has_key(C1) else self._setpoints[C1]}
+
+        for param in [H0, H1, C0, C1]:
+            if target[param] is None:
+                raise ValueError(_NEEDS_SET % param)
+
+        for params in [(H1, H0), (C0, C1), (H0, C0)]:
+            if target[params[0]] >= target[params[1]]:
+                raise ValueError(_BACKWARDS % params)
+
+        self._setpoints = target
 
     def get_action(self, temperature):
         """Computes the action to take based on the current temperature"""
         if self._is_hot(temperature):
             return START_COOLING
 
-        elif self._is_cold(temperature):
+        if self._is_cold(temperature):
             return START_HEATING
 
-        elif self._is_goldielocks(temperature):
-            return SHUTDOWN
-
-        elif self._has_heating() and self._has_cooling():
-            return None
-
-        # if we succeed either of these next two, then we have partial configuration
-        elif self._has_heating() and temperature > self.state[_H0]:
-            return SHUTDOWN
-
-        elif self._has_cooling() and temperature < self.state[_C0]:
+        if self._is_shutdown(temperature):
             return SHUTDOWN
 
         return None
@@ -87,21 +71,28 @@ class Heatpump(object):
         return subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]])
 
     def _is_hot(self, temperature):
-        return self._has_cooling() and temperature > self.state[_C1]
+        return self._has_cooling() and temperature > self._setpoints[C1]
 
     def _is_cold(self, temperature):
-        return self._has_heating() and temperature < self.state[_H1]
+        return self._has_heating() and temperature < self._setpoints[H1]
 
-    def _is_goldielocks(self, temperature):
-        if not self._has_heating() and not self._has_cooling():
-            # if we don't have both heating and cooling configuration, we can't
-            # possibly know if we are neither too hot nor too cold!
-            return False
+    def _is_shutdown(self, temperature):
+        if self._has_full_config():
+            return temperature > self._setpoints[H0] and temperature < self._setpoints[C0]
 
-        return temperature > self.state[_H0] and temperature < self.state[_C0]
+        if self._has_heating() and temperature > self._setpoints[H0]:
+            return True
+
+        if self._has_cooling() and temperature < self._setpoints[C0]:
+            return True
+
+        return False
+
+    def _has_full_config(self):
+        return self._has_heating() and self._has_cooling()
 
     def _has_heating(self):
-        return self.state[_H1] is not None and self.state[_H0] is not None
+        return self._setpoints[H1] is not None and self._setpoints[H0] is not None
 
     def _has_cooling(self):
-        return self.state[_C0] is not None and self.state[_C1] is not None
+        return self._setpoints[C0] is not None and self._setpoints[C1] is not None
