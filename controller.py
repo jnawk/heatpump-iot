@@ -197,14 +197,30 @@ class Controller(object):
 
 def main():
     """Program entrypoint"""
-    iot = IoT()
-    iot.connect()
-    iot.subscribe()
-    iot.send_set_points()
+    heatpump = Heatpump()
+    heatpump.setpoints = DEFAULT_SETPOINTS
+
+    sensor = Sensor(SENSOR, DHT_PIN, DHT_ONOFF_PIN)
+
+    credentials = Credentials(root_ca_path=ROOT_CA_PATH,
+                              private_key_path=PRIVATE_KEY_PATH,
+                              certificate_path=CERTIFICATE_PATH)
+
+    iot = iot = IoT(CLIENT_ID)
+    iot.connect(HOST, credentials)
+
+    controller = Controller()
+    controller.heatpump = heatpump
+    controller.sensor = sensor
+    controller.iot = iot
+
+    controller.subscribe()
+    controller.send_set_points()
     while True:
-        state = iot.send_sample()
-        if state is not None:
-            iot.process_state(state)
+        environment_state = controller.environment
+        if environment_state is not None:
+            reported_state = controller.send_sample(environment_state)
+            controller.process_state(reported_state)
         time.sleep(2)
 
 if __name__ == '__main__':
