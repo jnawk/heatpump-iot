@@ -23,7 +23,7 @@ class Heatpump(object):
                            H0: None,
                            C0: None,
                            C1: None}
-       self._current_action = None
+        self._current_action = None
 
     @property
     def setpoints(self):
@@ -31,8 +31,9 @@ class Heatpump(object):
         return self._setpoints
 
     @property
-    def _current_action(self):
-        return _current_action
+    def current_action(self):
+        """Returns what the heatpump is supposed to be doing currently"""
+        return self._current_action
 
     @setpoints.setter
     def setpoints(self, setpoints):
@@ -65,13 +66,12 @@ class Heatpump(object):
 
         return None
 
-    @staticmethod
-    def send_command(command):
+    def send_command(self, command):
         """sends a command to the heatpump"""
         if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]]):
-            self._current_action = command[_A]
+            self._current_action = command
         else:
-            raise subprocess.CalledProcessError()
+            raise IOError()
 
     def _is_hot(self, temperature):
         return self._has_cooling() and temperature > self._setpoints[C1]

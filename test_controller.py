@@ -1,8 +1,15 @@
 """Tests for the controller module"""
 from __future__ import print_function
 
+import os
+import sys
+sys.path.append(os.path.dirname('vendored/'))
+
+ # pylint: disable=wrong-import-position
 import unittest
-from controller import Controller
+from controller import Controller, DEFAULT_SETPOINTS
+from heatpump import Heatpump, START_HEATING
+from iot import IoT
 
 class ControllerTest(unittest.TestCase):
     """Tests for the Controller class"""
@@ -50,5 +57,31 @@ class ControllerTest(unittest.TestCase):
         # no existing humidity
         self.assertIn('humidity', state_difference)
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_action_already_happening(self): #pylint: disable=no-self-use
+        """
+        Verifies the controller doesn't try to tell the heatpump to do what it is
+        already doing
+        """
+        class MockHeatpump(Heatpump):
+            """Mock Heatpump implementation which barfs when send_command is called"""
+            def send_command(self, command):
+                raise AssertionError('The controller should not ask the heatpump \
+                to do what it is already doing')
+
+        class MockIoT(IoT):
+            """Mock IoT implementation whose publish does nothing"""
+            def publish(self, _topic, _message):
+                pass
+
+        heatpump = MockHeatpump()
+        heatpump.setpoints = DEFAULT_SETPOINTS
+        heatpump._current_action = START_HEATING #pylint: disable=protected-access
+
+        iot = MockIoT(None)
+
+        controller = Controller()
+        controller.iot = iot
+        controller.heatpump = heatpump
+
+        state = {'temperature': 10}
+        controller.process_state(state)

@@ -137,27 +137,32 @@ class Controller(object):
         """Determine what action (if any) to take based on the most recent state change"""
         try:
             heatpump_command = self.heatpump.get_action(state['temperature'])
-            if heatpump_command is None:
-                return
-
-            function = heatpump_command['action']
-            logger.debug('Sending command to heatpump: %s', function)
-            if self.heatpump.send_command(heatpump_command) != 0:
-                logger.warning('could not send command to heat pump')
-                return
-
-            self.function = function
-            reported_state = {'function': self.function}
-            message = {'state': {'reported': reported_state}}
-            try:
-                self.iot.publish(TOPICS['shadow_update'], message)
-            except publishTimeoutException:
-                logger.warning('publish timeout, clearing local state')
-                self.humidity = None
-                self.temperature = None
-
         except KeyError:
-            pass
+            return
+
+        if heatpump_command is None:
+            return
+
+        if heatpump_command == self.heatpump.current_action:
+            return
+
+        function = heatpump_command['action']
+        logger.debug('Sending command to heatpump: %s', function)
+        try:
+            self.heatpump.send_command(heatpump_command)
+        except IOError:
+            logger.warning('could not send command to heat pump')
+            return
+
+        self.function = function
+        reported_state = {'function': self.function}
+        message = {'state': {'reported': reported_state}}
+        try:
+            self.iot.publish(TOPICS['shadow_update'], message)
+        except publishTimeoutException:
+            logger.warning('publish timeout, clearing local state')
+            self.humidity = None
+            self.temperature = None
 
     def send_set_points(self):
         """Send set points to IoT"""
