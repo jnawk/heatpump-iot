@@ -68,7 +68,10 @@ class Heatpump(object):
     @staticmethod
     def send_command(command):
         """sends a command to the heatpump"""
-        return subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]])
+        if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]]):
+            self._current_action = command[_A]
+        else:
+            raise subprocess.CalledProcessError()
 
     def _is_hot(self, temperature):
         return self._has_cooling() and temperature > self._setpoints[C1]
