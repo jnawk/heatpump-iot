@@ -26,7 +26,7 @@ TOPICS = {
     'update_state': '$aws/things/40stokesDHT/shadow/update/delta'
 }
 
-class IoT(object):
+class Controller(object):
     """Main Class"""
     def __init__(self):
         self.humidity = None
