@@ -130,10 +130,9 @@ class Controller(object):
         """Send set points to IoT"""
         message = {
             'state': {
-                'reported': self.heatpump.get_setpoints()
+                'reported': self.heatpump.setpoints
             }
         }
-        raw_message = json.dumps(message)
         try:
             self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
@@ -141,40 +140,52 @@ class Controller(object):
             self.humidity = None
             self.temperature = None
 
-    def send_sample(self):
-        """Send state to IoT"""
-        humidity, temperature = self.sensor.read()
+    @property
+    def environment(self):
+        """Obtains a sample from the sensor"""
+        return self.sensor.sample
 
-        reported_state = {}
+    def compute_state_difference(self, new_state):
+        """Computes the difference between the current state and the new state"""
+        if not self.temperature and not self.humidity:
+            return new_state
+
+        new_state = deepcopy(new_state)
+
+        if self.temperature:
+            try:
+                if abs(self.temperature - new_state['temperature']) < 0.2:
+                    del new_state['temperature']
+            except KeyError:
+                pass
+
+        if self.humidity:
+            try:
+                if abs(self.humidity - new_state['humidity']) < 0.2:
+                    del new_state['humidity']
+            except KeyError:
+                pass
+
+        return new_state
+
+    def send_sample(self, environment):
+        """Send state to IoT"""
+        new_state = {'temperature': environment.temperature,
+                     'humidity': environment.humidity}
+        reported_state = self.compute_state_difference(new_state)
         now = time.time()
-        forced_update = self.last_update is None or now > self.last_update + 60
-        logger.debug('last_update: %s, now: %s, force update: %s, t: %s, h: %s',
+        logger.debug('last_update: %s, now: %s, t: %s, h: %s',
                      str(self.last_update),
                      str(now),
-                     str(self.last_update is None or now > self.last_update + 60),
-                     str(temperature),
-                     str(humidity))
-        if humidity is not None:
-            if forced_update or self.humidity is None or abs(humidity - self.humidity) > 0.2:
-                self.humidity = humidity
-                reported_state['humidity'] = humidity
-        else:
-            logger.debug('no humidity')
+                     str(environment.temperature),
+                     str(environment.humidity))
 
-        if temperature is not None:
-            if forced_update or self.temperature is None or abs(temperature - self.temperature) > 0.2:
-                self.temperature = temperature
-                reported_state['temperature'] = temperature
-        else:
-            logger.debug('no temperature')
-
-        if reported_state == {}:
+        if not reported_state:
             return None
 
         self.last_update = now
         message = {'state': {'reported': reported_state}}
-        raw_message = json.dumps(message)
-        logger.debug(raw_message)
+        logger.debug(message)
         try:
             self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
