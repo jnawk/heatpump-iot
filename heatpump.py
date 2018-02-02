@@ -68,7 +68,7 @@ class Heatpump(object):
 
     def send_command(self, command):
         """sends a command to the heatpump"""
-        if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]]):
+        if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]]) == 0:
             self._current_action = command
         else:
             raise IOError()
