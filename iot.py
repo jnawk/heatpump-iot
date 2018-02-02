@@ -71,7 +71,7 @@ class Credentials(object):
         return self._root_ca_path
 
     @property
-    def private_key_paty(self):
+    def private_key_path(self):
         """Getter for private_key_path property"""
         return self._private_key_path
 
