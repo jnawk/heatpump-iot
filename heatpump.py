@@ -74,28 +74,31 @@ class Heatpump(object):
             raise IOError()
 
     def _is_hot(self, temperature):
-        return self._has_cooling() and temperature > self._setpoints[C1]
+        return self._has_cooling and temperature > self._setpoints[C1]
 
     def _is_cold(self, temperature):
-        return self._has_heating() and temperature < self._setpoints[H1]
+        return self._has_heating and temperature < self._setpoints[H1]
 
     def _is_shutdown(self, temperature):
-        if self._has_full_config():
+        if self._has_full_config:
             return temperature > self._setpoints[H0] and temperature < self._setpoints[C0]
 
-        if self._has_heating() and temperature > self._setpoints[H0]:
+        if self._has_heating and temperature > self._setpoints[H0]:
             return True
 
-        if self._has_cooling() and temperature < self._setpoints[C0]:
+        if self._has_cooling and temperature < self._setpoints[C0]:
             return True
 
         return False
 
+    @property
     def _has_full_config(self):
         return self._has_heating() and self._has_cooling()
 
+    @property
     def _has_heating(self):
-        return self._setpoints[H1] is not None and self._setpoints[H0] is not None
+        return self._setpoints[H1] and self._setpoints[H0]
 
+    @property
     def _has_cooling(self):
-        return self._setpoints[C0] is not None and self._setpoints[C1] is not None
+        return self._setpoints[C0] and self._setpoints[C1]
