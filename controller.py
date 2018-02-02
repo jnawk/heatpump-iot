@@ -143,10 +143,10 @@ class Controller(object):
         if heatpump_command is None:
             return
 
-        logger.debug('might be telling heatpump to %s' % heatpump_command['_A'])
+        logger.debug('might be telling heatpump to %s', heatpump_command['_A'])
 
         if heatpump_command == self.heatpump.current_action:
-            logger.debug('not telling heatpump to %s' % heatpump_command['_A'])
+            logger.debug('not telling heatpump to %s', heatpump_command['_A'])
             return
 
         function = heatpump_command['action']
