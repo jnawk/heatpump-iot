@@ -289,4 +289,7 @@ if __name__ == '__main__':
     awslogger.setLevel(logging.WARNING)
     awslogger.addHandler(_STREAM_HANDLER)
 
+    heatpump.logger.setLevel(logging.DEBUG)
+    heatpump.logger.addHandler(_STREAM_HANDLER)
+
     main()
