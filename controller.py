@@ -142,6 +142,7 @@ class Controller(object):
         try:
             heatpump_command = self.heatpump.get_action(state['temperature'])
         except KeyError:
+            logger.debug('key error')
             return
 
         if heatpump_command is None:
