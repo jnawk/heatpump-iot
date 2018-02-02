@@ -140,6 +140,8 @@ class Controller(object):
         except KeyError:
             return
 
+        logger.debug('might be telling heatpump to %s' % heatpump_command['_A'])
+
         if heatpump_command is None:
             return
 
