@@ -36,6 +36,7 @@ except ImportError:
     if __name__ == '_main__':
         raise
 
+import heatpump
 from heatpump import Heatpump, H1, H0, C0, C1
 
 try:
