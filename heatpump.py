@@ -90,7 +90,7 @@ class Heatpump(object):
             return True
 
         return False
-        
+
     def _has_full_config(self):
         return self._has_heating() and self._has_cooling()
 
