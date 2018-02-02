@@ -80,7 +80,7 @@ class Heatpump(object):
         logger.debug('%d > %d: %r',
                      temperature,
                      self._setpoints[C1],
-                     temperature > self._setpoints[C1]
+                     temperature > self._setpoints[C1])
         return self._has_cooling() and temperature > self._setpoints[C1]
 
     def _is_cold(self, temperature):
