@@ -214,6 +214,17 @@ class Controller(object):
         new_state = {'temperature': environment.temperature,
                      'humidity': environment.humidity}
         reported_state = self.compute_state_difference(new_state)
+
+        try:
+            self.temperature = reported_state['temperature']
+        except KeyError:
+            pass
+
+        try:
+            self.humidity = reported_state['humidity']
+        except KeyError:
+            pass
+
         now = time.time()
         logger.debug('last_update: %s, now: %s, t: %s, h: %s',
                      str(self.last_update),
@@ -259,7 +270,7 @@ def main():
     controller.send_set_points()
     while True:
         environment_state = controller.environment
-        if environment_state is not None:
+        if environment_state:
             reported_state = controller.send_sample(environment_state)
             controller.process_state(reported_state)
         time.sleep(2)
