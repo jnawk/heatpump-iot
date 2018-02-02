@@ -87,7 +87,7 @@ class Heatpump(object):
         logger.debug('%d < %d: %r',
                      temperature,
                      self._setpoints[H1],
-                     temperature < self._setpoints[H1]
+                     temperature < self._setpoints[H1])
         return self._has_heating() and temperature < self._setpoints[H1]
 
     def _is_shutdown(self, temperature):
