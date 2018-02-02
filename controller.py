@@ -135,6 +135,7 @@ class Controller(object):
 
     def process_state(self, state):
         """Determine what action (if any) to take based on the most recent state change"""
+        logger.debug(state)
         try:
             heatpump_command = self.heatpump.get_action(state['temperature'])
         except KeyError:
