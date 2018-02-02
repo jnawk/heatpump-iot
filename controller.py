@@ -137,6 +137,7 @@ class Controller(object):
         """Determine what action (if any) to take based on the most recent state change"""
         logger.debug(state)
         if not state:
+            logger.debug('not state, bye')
             return
 
         try:
@@ -145,7 +146,8 @@ class Controller(object):
             logger.debug('key error')
             return
 
-        if heatpump_command is None:
+        if not heatpump_command:
+            logger.debug('no command')
             return
 
         logger.debug('might be telling heatpump to %s', heatpump_command['_A'])
