@@ -74,7 +74,7 @@ _FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messa
 _STREAM_HANDLER = logging.StreamHandler()
 _STREAM_HANDLER.setFormatter(_FORMATTER)
 
-logger = logging.getLogger("40stokesDHT") # pylint: disable=invalid-name
+logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 logger.addHandler(_STREAM_HANDLER)
 
 
@@ -264,8 +264,8 @@ def main():
 if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
-    logger = logging.getLogger("AWSIoTPythonSDK") # pylint: disable=invalid-name
-    logger.setLevel(logging.WARNING)
-    logger.addHandler(_STREAM_HANDLER)
+    awslogger = logging.getLogger("AWSIoTPythonSDK") # pylint: disable=invalid-name
+    awslogger.setLevel(logging.WARNING)
+    awslogger.addHandler(_STREAM_HANDLER)
 
     main()
