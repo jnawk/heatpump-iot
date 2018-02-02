@@ -101,7 +101,7 @@ class Samples(object):
         if not self._temperature:
             return None
 
-        return round(median(self._temperature))
+        return round(median(self._temperature), 1)
 
     @property
     def humidity(self):
@@ -109,7 +109,7 @@ class Samples(object):
         if not self._humidity:
             return None
 
-        return round(median(self._humidity))
+        return round(median(self._humidity), 1)
 
     @temperature.setter
     def temperature(self, temperature):
