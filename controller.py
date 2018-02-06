@@ -128,7 +128,7 @@ class Controller(object):
 
     def process_state(self, state):
         """Determine what action (if any) to take based on the most recent state change"""
-        logger.debug(state)
+        logger.debug('process_state: %s', state)
         if not state:
             return
 
@@ -242,7 +242,7 @@ class Controller(object):
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
 
-        return different_state
+        return reported_state
 
 class State(object):
     """Holds the current state"""
