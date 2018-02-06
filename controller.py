@@ -14,16 +14,16 @@ V2 board:
     Input Pins:
         Pin 4:  Photo Transistor
         Pin 22: DHT22
-        Pin 24: LED Monitor Output
+        Pin 24: 47HC373N Q0
     Output Pins:
-        Pin 17: LED Monitor Input On/Off*
-        Pin 18: DHT22 On/Off - Active High
-        Pin 23: IR LED - Active High
-        Pin 25: LED Monitor Output On/Off - Active Low
+        Pin 17: 74HC373N D0
+        Pin 18: 74HC4066 1C - DHT22 VCC
+        Pin 23: 74HC4066 3C - IR LEDs VCC
+        Pin 25: 74HC4066 4C - 74HC373N LE
 
-        *This is actually connected to the D0 pin on the 74HC373N (Pin 3).
-        The cathode of the LEDs are connected to the LE Pin on the 74H373N
-        (Pin 11), which is Active High.
+    When running the LED, drive pin 17 high and pin 25 low. The LEDs cathodes are
+    connected to the LE pin on the 74HC4066.
+
 """
 import logging
 import time
@@ -36,7 +36,6 @@ except ImportError:
     if __name__ == '_main__':
         raise
 
-import heatpump
 from heatpump import Heatpump, H1, H0, C0, C1
 
 try:
@@ -82,14 +81,10 @@ logger.addHandler(_STREAM_HANDLER)
 class Controller(object):
     """Main Class"""
     def __init__(self):
-        self.humidity = None
-        self.temperature = None
-        self.function = None
-        self.last_update = None
-        self.last_heatpump_command = None
         self.sensor = None
         self.heatpump = None
         self.iot = None
+        self.state = State()
 
     def subscribe(self):
         """Set up MQTT subscriptions"""
@@ -104,9 +99,7 @@ class Controller(object):
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
         logger.warning("State update rejected")
-        self.humidity = None
-        self.temperature = None
-        self.function = None
+        self.state.reset()
 
     def update_state_callback(self, _client, _userdata, message):
         """Callback to process a desired state change"""
@@ -131,8 +124,7 @@ class Controller(object):
             self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            self.humidity = None
-            self.temperature = None
+            self.state.reset()
 
     def process_state(self, state):
         """Determine what action (if any) to take based on the most recent state change"""
@@ -165,15 +157,14 @@ class Controller(object):
             logger.warning('could not send command to heat pump')
             return
 
-        self.function = function
-        reported_state = {'function': self.function}
+        self.state.function = function
+        reported_state = {'function': function}
         message = {'state': {'reported': reported_state}}
         try:
             self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            self.humidity = None
-            self.temperature = None
+            self.state.reset()
 
     def send_set_points(self):
         """Send set points to IoT"""
@@ -186,8 +177,7 @@ class Controller(object):
             self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            self.humidity = None
-            self.temperature = None
+            self.state.reset()
 
     @property
     def environment(self):
@@ -196,21 +186,20 @@ class Controller(object):
 
     def compute_state_difference(self, new_state):
         """Computes the difference between the current state and the new state"""
-        if not self.temperature and not self.humidity:
+        if not self.state.temperature and not self.state.humidity:
             return new_state
 
         new_state = deepcopy(new_state)
-
-        if self.temperature:
+        if self.state.temperature:
             try:
-                if abs(self.temperature - new_state['temperature']) < 0.2:
+                if abs(self.state.temperature - new_state['temperature']) < 0.2:
                     del new_state['temperature']
             except KeyError:
                 pass
 
-        if self.humidity:
+        if self.state.humidity:
             try:
-                if abs(self.humidity - new_state['humidity']) < 0.2:
+                if abs(self.state.humidity - new_state['humidity']) < 0.2:
                     del new_state['humidity']
             except KeyError:
                 pass
@@ -222,41 +211,120 @@ class Controller(object):
         new_state = {'temperature': environment.temperature,
                      'humidity': environment.humidity}
         reported_state = self.compute_state_difference(new_state)
-
-        try:
-            self.temperature = reported_state['temperature']
-        except KeyError:
-            pass
-
-        try:
-            self.humidity = reported_state['humidity']
-        except KeyError:
-            pass
-
         now = time.time()
+
+        try:
+            self.state.temperature = reported_state['temperature']
+        except KeyError:
+            pass
+
+        try:
+            self.state.humidity = reported_state['humidity']
+        except KeyError:
+            pass
+
         logger.debug('last_update: %s, now: %s, t: %s, h: %s',
-                     str(self.last_update),
                      str(now),
+                     str(self.state.last_update),
                      str(environment.temperature),
                      str(environment.humidity))
 
         if not reported_state:
             return None
 
-        self.last_update = now
         message = {'state': {'reported': reported_state}}
         logger.debug(message)
         try:
             self.iot.publish(TOPICS['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
-            self.humidity = None
-            self.temperature = None
+            self.state.reset()
 
         return reported_state
 
-def main():
-    """Program entrypoint"""
+class State(object):
+    """Holds the current state"""
+    def __init__(self):
+        """Constructor"""
+        self._humidity = None
+        self._temperature = None
+        self._function = None
+
+    def reset(self):
+        """Clears out the temperature, humidity and function properties"""
+        self._temperature = None
+        self._humidity = None
+        self._function = None
+
+    @property
+    def humidity(self):
+        """The humidity"""
+        if self._humidity:
+            return self._humidity['value']
+        return None
+
+    @humidity.setter
+    def humidity(self, humidity):
+        self._humidity = {'value': humidity, 'update': time.time()}
+
+    @property
+    def temperature(self):
+        """The temperature"""
+        if self._temperature:
+            return self._temperature['value']
+        return None
+
+    @temperature.setter
+    def temperature(self, temperature):
+        self._temperature = {'value': temperature, 'update': time.time()}
+
+    @property
+    def function(self):
+        """What the heatpump is supposed to be doing"""
+        return self._function
+
+    @function.setter
+    def function(self, function):
+        self._function = function
+
+    @property
+    def last_update(self):
+        """
+        The earliest last-update time.
+
+        If neither temperature or humidity have been updated, then this will return
+        None.
+
+        If only one of temperature or humidity have been updated, then this will
+        return the time of the most recent update.
+
+        If both temperature and humidity have been updated, then this will return
+        the earlier of the most recent update of temperature or most recent update
+        of humidity.
+        """
+        if self.humidity and self._temperature:
+            return min(self._humidity['update'], self._temperature['update'])
+
+        if self._temperature:
+            return self._temperature['update']
+
+        if self._humidity:
+            return self._humidity['update']
+
+        return None
+
+def _setup_logging():
+    logger.setLevel(logging.DEBUG)
+
+    aws_logger = logging.getLogger('AWSIoTPythonSDK')
+    aws_logger.setLevel(logging.WARNING)
+    aws_logger.addHandler(_STREAM_HANDLER)
+
+    heatpump_logger = logging.getLogger('heatpump')
+    heatpump_logger.setLevel(logging.DEBUG)
+    heatpump_logger.addHandler(_STREAM_HANDLER)
+
+def _main():
     heatpump = Heatpump()
     heatpump.setpoints = DEFAULT_SETPOINTS
 
@@ -284,13 +352,5 @@ def main():
         time.sleep(2)
 
 if __name__ == '__main__':
-    logger.setLevel(logging.DEBUG)
-
-    awslogger = logging.getLogger("AWSIoTPythonSDK") # pylint: disable=invalid-name
-    awslogger.setLevel(logging.WARNING)
-    awslogger.addHandler(_STREAM_HANDLER)
-
-    heatpump.logger.setLevel(logging.DEBUG)
-    heatpump.logger.addHandler(_STREAM_HANDLER)
-
-    main()
+    _setup_logging()
+    _main()

@@ -17,7 +17,7 @@ C1 = 'cooling_start'
 _NEEDS_SET = '%s needs to be set'
 _BACKWARDS = '%s needs to be less than %s'
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
 class Heatpump(object):
     """Heatpump class"""
@@ -77,14 +77,14 @@ class Heatpump(object):
             raise IOError()
 
     def _is_hot(self, temperature):
-        logger.debug('%d > %d: %r',
+        logger.debug('%s > %s: %r',
                      temperature,
                      self._setpoints[C1],
                      temperature > self._setpoints[C1])
         return self._has_cooling() and temperature > self._setpoints[C1]
 
     def _is_cold(self, temperature):
-        logger.debug('%d < %d: %r',
+        logger.debug('%s < %s: %r',
                      temperature,
                      self._setpoints[H1],
                      temperature < self._setpoints[H1])
@@ -92,7 +92,7 @@ class Heatpump(object):
 
     def _is_shutdown(self, temperature):
         if self._has_full_config():
-            logger.debug('%d < %d < %d: %r',
+            logger.debug('%s < %s < %s: %r',
                          self._setpoints[H0],
                          temperature,
                          self._setpoints[C0],
@@ -111,9 +111,7 @@ class Heatpump(object):
         return self._has_heating() and self._has_cooling()
 
     def _has_heating(self):
-        logger.debug('%s %s', bool(self._setpoints[H1]), bool(self.setpoints[H0]))
         return self._setpoints[H1] and self._setpoints[H0]
 
     def _has_cooling(self):
-        logger.debug('%s %s', bool(self._setpoints[C0]), bool(self.setpoints[C1]))
         return self._setpoints[C0] and self._setpoints[C1]
