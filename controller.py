@@ -210,7 +210,7 @@ class Controller(object):
 
         now = time.time()
         different_state = self.compute_state_difference(new_state)
-        if self.state.last_update + 60 < now:
+        if not self.state.last_update or self.state.last_update + 60 < now:
             reported_state = new_state
         else:
             reported_state = different_state

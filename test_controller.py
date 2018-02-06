@@ -103,7 +103,7 @@ class ControllerTest(unittest.TestCase):
         state = {'temperature': 10}
         self.controller.process_state(state)
 
-    def test_action_when_none(self): #pylint: disable=no-self-use
+    def test_action_when_none(self):
         """
         Verifies the controller tells the heatpump to change state when it's not
         currently doing anything
@@ -117,6 +117,11 @@ class ControllerTest(unittest.TestCase):
         self.controller.heatpump._current_action = None
         #with self.assertRaises(SendCommandCalled):
         self.controller.process_state(state)
+
+    def test_initial_update(self):
+        """Verifies we don't blow up when it's the first run"""
+        self.controller.state.reset()
+        state_difference = self.controller.send_sample(Sample(10, 10))        
 
 class StateTest(unittest.TestCase):
     def setUp(self):
