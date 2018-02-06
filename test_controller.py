@@ -6,17 +6,36 @@ import sys
 sys.path.append(os.path.dirname('vendored/'))
 
  # pylint: disable=wrong-import-position
+import time
 import unittest
-from controller import Controller, DEFAULT_SETPOINTS
+from controller import Controller, DEFAULT_SETPOINTS, State
 from heatpump import Heatpump, START_HEATING
 from iot import IoT
+from sensor import Sample
+
+# need this
+class publishTimeoutException(Exception): pass
+import controller
+controller.publishTimeoutException = publishTimeoutException
 
 class ControllerTest(unittest.TestCase):
     """Tests for the Controller class"""
     def setUp(self):
+        def publish(_topic, _message):
+            pass
+
+        iot = IoT(None)
+        iot.publish = publish
+
+        heatpump = Heatpump()
+        heatpump.setpoints = DEFAULT_SETPOINTS
+        heatpump._current_action = START_HEATING #pylint: disable=protected-access
+
         self.controller = Controller()
         self.controller.state.humidity = 10
         self.controller.state.temperature = 10
+        self.controller.heatpump = heatpump
+        self.controller.iot = iot
 
     def test_obvious_state_difference(self):
         """
@@ -56,54 +75,56 @@ class ControllerTest(unittest.TestCase):
         # no existing humidity
         self.assertIn('humidity', state_difference)
 
+    def test_stale_state(self):
+        def publish(_topic, message):
+            self.assertIn('temperature', message['state']['reported'])
+
+        self.controller.iot.publish = publish
+
+        last_update = time.time() - 70
+        self.controller.state._temperature['update'] = last_update
+        self.assertEquals(last_update, self.controller.state.last_update)
+
+        new_state = {'humidity': 10, 'temperature': 10}
+        state_difference = self.controller.send_sample(Sample(10, 10))
+        self.assertIsNotNone(state_difference)
+
     def test_action_already_happening(self): #pylint: disable=no-self-use
         """
         Verifies the controller doesn't try to tell the heatpump to do what it is
         already doing
         """
-        class MockHeatpump(Heatpump):
-            """Mock Heatpump implementation which barfs when send_command is called"""
-            def send_command(self, command):
-                raise AssertionError('The controller should not ask the heatpump \
-                to do what it is already doing')
 
-        heatpump = MockHeatpump()
-        heatpump.setpoints = DEFAULT_SETPOINTS
-        heatpump._current_action = START_HEATING #pylint: disable=protected-access
+        def send_command(command):
+            fail('The controller should not ask the heatpump to do what it is already doing')
 
-        iot = MockIoT(None)
-
-        controller = Controller()
-        controller.iot = iot
-        controller.heatpump = heatpump
+        self.controller.heatpump.send_command = send_command
 
         state = {'temperature': 10}
-        controller.process_state(state)
+        self.controller.process_state(state)
 
     def test_action_when_none(self): #pylint: disable=no-self-use
         """
         Verifies the controller tells the heatpump to change state when it's not
         currently doing anything
         """
-        class MockHeatpump(Heatpump):
-            """Mock Heatpump implementation which barfs when send_command is called"""
-            def send_command(self, command):
-                raise AssertionError('The controller should not ask the heatpump \
-                to do what it is already doing')
+        def send_command(command):
+            self.assertEquals(command, START_HEATING)
 
-        heatpump = MockHeatpump()
-        heatpump.setpoints = DEFAULT_SETPOINTS
-        heatpump._current_action = START_HEATING #pylint: disable=protected-access
-
-        iot = MockIoT(None)
-
-        controller = Controller()
-        controller.iot = iot
-        controller.heatpump = heatpump
+        self.controller.heatpump.send_command = send_command
 
         state = {'temperature': 10}
-        controller.process_state(state)
-class MockIoT(IoT):
-    """Mock IoT implementation whose publish does nothing"""
-    def publish(self, _topic, _message):
-        pass
+        self.controller.heatpump._current_action = None
+        #with self.assertRaises(SendCommandCalled):
+        self.controller.process_state(state)
+
+class StateTest(unittest.TestCase):
+    def setUp(self):
+        self.state = State()
+
+    def test_last_update(self):
+        self.state.temperature = 10
+        time.sleep(0.01)
+        self.state.humidity = 10
+
+        self.assertEquals(self.state.last_update, self.state._temperature['update'])

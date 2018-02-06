@@ -130,17 +130,14 @@ class Controller(object):
         """Determine what action (if any) to take based on the most recent state change"""
         logger.debug(state)
         if not state:
-            logger.debug('not state, bye')
             return
 
         try:
             heatpump_command = self.heatpump.get_action(state['temperature'])
         except KeyError:
-            logger.debug('key error')
             return
 
         if not heatpump_command:
-            logger.debug('no command')
             return
 
         logger.debug('might be telling heatpump to %r', heatpump_command)
@@ -210,8 +207,13 @@ class Controller(object):
         """Send state to IoT"""
         new_state = {'temperature': environment.temperature,
                      'humidity': environment.humidity}
-        reported_state = self.compute_state_difference(new_state)
+
         now = time.time()
+        different_state = self.compute_state_difference(new_state)
+        if self.state.last_update + 60 < now:
+            reported_state = new_state
+        else:
+            reported_state = different_state
 
         try:
             self.state.temperature = reported_state['temperature']
@@ -240,7 +242,7 @@ class Controller(object):
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
 
-        return reported_state
+        return different_state
 
 class State(object):
     """Holds the current state"""

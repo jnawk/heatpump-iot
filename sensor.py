@@ -2,8 +2,19 @@
 import time
 import atexit
 from numpy import median
-import RPi.GPIO as GPIO #pylint: disable=import-error
-import Adafruit_DHT #pylint: disable=import-error
+try:
+    import RPi.GPIO as GPIO #pylint: disable=import-error
+    import Adafruit_DHT #pylint: disable=import-error
+except ImportError:
+    import inspect
+    def in_unittest():
+        current_stack = inspect.stack()
+        for stack_frame in current_stack:
+            if "unittest" in stack_frame[1]:
+                return True
+        return False
+    if not in_unittest():
+        raise
 
 ON = 1
 OFF = 0
