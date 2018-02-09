@@ -31,11 +31,11 @@ from copy import deepcopy
 
 try:
     import Adafruit_DHT
-    from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 except ImportError:
     if __name__ == '_main__':
         raise
 
+from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 from heatpump import Heatpump, H1, H0, C0, C1
 
 try:

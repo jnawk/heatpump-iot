@@ -7,13 +7,13 @@ try:
     import Adafruit_DHT #pylint: disable=import-error
 except ImportError:
     import inspect
-    def in_unittest():
+    def _in_unittest():
         current_stack = inspect.stack()
         for stack_frame in current_stack:
             if "unittest" in stack_frame[1]:
                 return True
         return False
-    if not in_unittest():
+    if not _in_unittest():
         raise
 
 ON = 1

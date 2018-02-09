@@ -5,7 +5,7 @@ import os
 import sys
 sys.path.append(os.path.dirname('vendored/'))
 
- # pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position
 import time
 import unittest
 from controller import Controller, DEFAULT_SETPOINTS, State
@@ -13,19 +13,14 @@ from heatpump import Heatpump, START_HEATING
 from iot import IoT
 from sensor import Sample
 
-# need this
-class publishTimeoutException(Exception): pass
-import controller
-controller.publishTimeoutException = publishTimeoutException
-
 class ControllerTest(unittest.TestCase):
     """Tests for the Controller class"""
     def setUp(self):
-        def publish(_topic, _message):
+        def _publish(_topic, _message):
             pass
 
         iot = IoT(None)
-        iot.publish = publish
+        iot.publish = _publish
 
         heatpump = Heatpump()
         heatpump.setpoints = DEFAULT_SETPOINTS
@@ -76,16 +71,19 @@ class ControllerTest(unittest.TestCase):
         self.assertIn('humidity', state_difference)
 
     def test_stale_state(self):
-        def publish(_topic, message):
+        """
+        Verifies that when the latest update was too long ago, non-changed state
+        is included
+        """
+        def _publish(_topic, message):
             self.assertIn('temperature', message['state']['reported'])
 
-        self.controller.iot.publish = publish
+        self.controller.iot.publish = _publish
 
         last_update = time.time() - 70
-        self.controller.state._temperature['update'] = last_update
+        self.controller.state._temperature['update'] = last_update #pylint: disable=protected-access
         self.assertEquals(last_update, self.controller.state.last_update)
 
-        new_state = {'humidity': 10, 'temperature': 10}
         state_difference = self.controller.send_sample(Sample(10, 10))
         self.assertIsNotNone(state_difference)
 
@@ -94,11 +92,10 @@ class ControllerTest(unittest.TestCase):
         Verifies the controller doesn't try to tell the heatpump to do what it is
         already doing
         """
+        def _send_command(_command):
+            self.fail('The controller should not ask the heatpump to do what it is already doing')
 
-        def send_command(command):
-            fail('The controller should not ask the heatpump to do what it is already doing')
-
-        self.controller.heatpump.send_command = send_command
+        self.controller.heatpump.send_command = _send_command
 
         state = {'temperature': 10}
         self.controller.process_state(state)
@@ -108,28 +105,32 @@ class ControllerTest(unittest.TestCase):
         Verifies the controller tells the heatpump to change state when it's not
         currently doing anything
         """
-        def send_command(command):
+        def _send_command(command):
             self.assertEquals(command, START_HEATING)
 
-        self.controller.heatpump.send_command = send_command
+        self.controller.heatpump.send_command = _send_command
 
         state = {'temperature': 10}
-        self.controller.heatpump._current_action = None
-        #with self.assertRaises(SendCommandCalled):
+        self.controller.heatpump._current_action = None #pylint: disable=protected-access
         self.controller.process_state(state)
 
     def test_initial_update(self):
         """Verifies we don't blow up when it's the first run"""
         self.controller.state.reset()
-        state_difference = self.controller.send_sample(Sample(10, 10))        
+        _ = self.controller.send_sample(Sample(10, 10))
 
 class StateTest(unittest.TestCase):
+    """Tests for the State class"""
     def setUp(self):
         self.state = State()
 
     def test_last_update(self):
+        """
+        Verifies the last_update property takes on the value of the older of the
+        two dimensions.
+        """
         self.state.temperature = 10
         time.sleep(0.01)
         self.state.humidity = 10
 
-        self.assertEquals(self.state.last_update, self.state._temperature['update'])
+        self.assertEquals(self.state.last_update, self.state._temperature['update']) #pylint: disable=protected-access
