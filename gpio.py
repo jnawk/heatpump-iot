@@ -57,23 +57,23 @@ class LEDVerify(object):
 
         Ensure this is never run concurrently with the LEDs
         """
+        # reset - state should be LOW
         self.reset()
-        s = self.state
-        if s != GPIO.LOW:
-            raise IOError('1/3: GPIO State (%r) was not LOW (%r)' % (s, GPIO.LOW))
+        if self.state != GPIO.LOW:
+            raise IOError('1/3: GPIO State was not LOW')
 
+        # Simulate LED firing - state should be HIGH
         GPIO.output(self.le_pin, GPIO.HIGH)
         time.sleep(0.1)
         GPIO.output(self.le_pin, GPIO.LOW)
 
-        s = self.state
-        if s != GPIO.LOW:
-            raise IOError('2/3: GPIO State (%r) was not HIGH (%r)' % (s, GPIO.HIGH))
+        # reset - state should be LOW
+        if self.state != GPIO.HIGH:
+            raise IOError('2/3: GPIO State was not HIGH')
 
         self.reset()
-        s = self.state
-        if s != GPIO.LOW:
-            raise IOError('3/3: GPIO State (%r) was not LOW (%r)' % (s, GPIO.LOW))
+        if self.state != GPIO.LOW:
+            raise IOError('3/3: GPIO State was not LOW)')
 
 class DHT22(object):
     """DHT22 Sensor class"""
