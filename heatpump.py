@@ -72,6 +72,7 @@ class Heatpump(object):
 
     def send_command(self, command):
         """sends a command to the heatpump"""
+        self.led_verify.reset()
         if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]]) == 0:
             if self.led_verify.state:
                 self._current_action = command
