@@ -26,7 +26,7 @@ class LEDVerify(object):
     def __init__(self, le_pin, d0_pin, q0_pin):
         GPIO.setup(le_pin, GPIO.OUT)
         GPIO.setup(d0_pin, GPIO.OUT)
-        GPIO.setup(q0_pin, GPIO.OUT)
+        GPIO.setup(q0_pin, GPIO.IN)
         self.le_pin = le_pin
         self.d0_pin = d0_pin
         self.q0_pin = q0_pin
@@ -44,12 +44,12 @@ class LEDVerify(object):
 
         Ensure this is never run concurrently with the LEDs
         """
-        GPIO.output(self.q0_pin, GPIO.LOW)
+        GPIO.output(self.d0_pin, GPIO.LOW)
         GPIO.output(self.le_pin, GPIO.HIGH)
         time.sleep(0.1)
         GPIO.output(self.le_pin, GPIO.LOW)
         time.sleep(0.1)
-        GPIO.output(self.q0_pin, GPIO.HIGH)
+        GPIO.output(self.d0_pin, GPIO.HIGH)
 
     def self_test(self):
         """
