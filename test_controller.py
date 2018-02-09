@@ -11,7 +11,7 @@ import unittest
 from controller import Controller, DEFAULT_SETPOINTS, State
 from heatpump import Heatpump, START_HEATING
 from iot import IoT
-from sensor import Sample
+from gpio import Sample
 
 class ControllerTest(unittest.TestCase):
     """Tests for the Controller class"""

@@ -27,6 +27,7 @@ class Heatpump(object):
                            C0: None,
                            C1: None}
         self._current_action = None
+        self.led_verify = None
 
     @property
     def setpoints(self):
@@ -72,9 +73,11 @@ class Heatpump(object):
     def send_command(self, command):
         """sends a command to the heatpump"""
         if subprocess.call(["irsend", "SEND_ONCE", "heat_pump", command[_C]]) == 0:
-            self._current_action = command
-        else:
-            raise IOError()
+            if self.led_verify.state:
+                self._current_action = command
+                return command
+
+        raise IOError()
 
     def _is_hot(self, temperature):
         logger.debug('%s > %s: %r',

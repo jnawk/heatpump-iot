@@ -29,27 +29,11 @@ import logging
 import time
 from copy import deepcopy
 
-try:
-    import Adafruit_DHT
-except ImportError:
-    if __name__ == '_main__':
-        raise
-
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 from heatpump import Heatpump, H1, H0, C0, C1
 
-try:
-    from sensor import Sensor
-    from iot import IoT, Credentials
-except ImportError:
-    if __name__ == '_main__':
-        raise
-
-try:
-    SENSOR = Adafruit_DHT.DHT22
-except NameError:
-    if __name__ == '_main__':
-        raise
+from gpio import DHT22, LEDVerify
+from iot import IoT, Credentials
 
 HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
 ROOT_CA_PATH = '../root-CA.crt'
@@ -58,6 +42,10 @@ PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
 CLIENT_ID = '40stokesDHT'
 DHT_PIN = 22
 DHT_ONOFF_PIN = 18
+
+LV_LE_PIN = 25
+LV_D0_PIN = 17
+LV_Q0_PIN = 24
 
 DEFAULT_SETPOINTS = {H1: 16, H0: 18, C0: 22, C1: 24}
 
@@ -81,7 +69,7 @@ logger.addHandler(_STREAM_HANDLER)
 class Controller(object):
     """Main Class"""
     def __init__(self):
-        self.sensor = None
+        self.dht22 = None
         self.heatpump = None
         self.iot = None
         self.state = State()
@@ -179,7 +167,7 @@ class Controller(object):
     @property
     def environment(self):
         """Obtains a sample from the sensor"""
-        return self.sensor.sample
+        return self.dht22.sample
 
     def compute_state_difference(self, new_state):
         """Computes the difference between the current state and the new state"""
@@ -327,10 +315,12 @@ def _setup_logging():
     heatpump_logger.addHandler(_STREAM_HANDLER)
 
 def _main():
+    dht22 = DHT22(DHT_PIN, DHT_ONOFF_PIN)
+    led_verify = LEDVerify(LV_LE_PIN, LV_D0_PIN, LV_Q0_PIN)
+
     heatpump = Heatpump()
     heatpump.setpoints = DEFAULT_SETPOINTS
-
-    sensor = Sensor(SENSOR, DHT_PIN, DHT_ONOFF_PIN)
+    heatpump.led_verify = led_verify
 
     credentials = Credentials(root_ca_path=ROOT_CA_PATH,
                               private_key_path=PRIVATE_KEY_PATH,
@@ -341,7 +331,7 @@ def _main():
 
     controller = Controller()
     controller.heatpump = heatpump
-    controller.sensor = sensor
+    controller.dht22 = dht22
     controller.iot = iot
 
     controller.subscribe()

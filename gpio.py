@@ -5,6 +5,8 @@ from numpy import median
 try:
     import RPi.GPIO as GPIO #pylint: disable=import-error
     import Adafruit_DHT #pylint: disable=import-error
+    atexit.register(GPIO.cleanup)
+    GPIO.setmode(GPIO.BCM)
 except ImportError:
     import inspect
     def _in_unittest():
@@ -19,22 +21,65 @@ except ImportError:
 ON = 1
 OFF = 0
 
-class Sensor(object):
-    """Sensor class"""
-    def __init__(self,
-                 sensor,
-                 data_pin,
-                 onoff_pin):
+class LEDVerify(object):
+    """Class for reading the 74HC373N"""
+    def __init__(self, le_pin, d0_pin, q0_pin):
+        GPIO.setup(le_pin, GPIO.OUT)
+        GPIO.setup(d0_pin, GPIO.OUT)
+        GPIO.setup(q0_pin, GPIO.OUT)
+        self.le_pin = le_pin
+        self.d0_pin = d0_pin
+        self.q0_pin = q0_pin
+
+        self.self_test()
+
+    @property
+    def state(self):
+        """Reads Q0 from the 74HC373N"""
+        return GPIO.input(self.q0_pin)
+
+    def reset(self):
+        """
+        Resets the memory state for another read
+
+        Ensure this is never run concurrently with the LEDs
+        """
+        GPIO.output(self.q0_pin, GPIO.LOW)
+        GPIO.output(self.le_pin, GPIO.HIGH)
+        time.sleep(0.1)
+        GPIO.output(self.le_pin, GPIO.LOW)
+        time.sleep(0.1)
+        GPIO.output(self.q0_pin, GPIO.HIGH)
+
+    def self_test(self):
+        """
+        Performs a self test
+
+        Ensure this is never run concurrently with the LEDs
+        """
+        self.reset()
+        if self.state != GPIO.LOW:
+            raise IOError('GPIO State was not LOW')
+
+        GPIO.output(self.le_pin, GPIO.HIGH)
+        time.sleep(0.1)
+        GPIO.output(self.le_pin, GPIO.LOW)
+
+        if self.state != GPIO.LOW:
+            raise IOError('GPIO State was not HIGH')
+
+        self.reset()
+        if self.state != GPIO.LOW:
+            raise IOError('GPIO State was not LOW')
+
+class DHT22(object):
+    """DHT22 Sensor class"""
+    def __init__(self, data_pin, onoff_pin):
         """Constructor"""
-        self.sensor = sensor
+        GPIO.setup(onoff_pin, GPIO.OUT)
         self.data_pin = data_pin
         self.onoff_pin = onoff_pin
         self._sensor_state = OFF
-
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.onoff_pin, GPIO.OUT)
-
-        atexit.register(GPIO.cleanup)
 
     @property
     def sensor_state(self):
@@ -60,7 +105,7 @@ class Sensor(object):
         old_sensor_state = self.sensor_state
         try:
             self.sensor_state = ON
-            return Adafruit_DHT.read_retry(self.sensor, self.data_pin)
+            return Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, self.data_pin)
         finally:
             self.sensor_state = old_sensor_state
 
