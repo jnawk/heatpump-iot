@@ -132,15 +132,16 @@ class Controller(object):
 
         if heatpump_command == self.heatpump.current_action:
             # command for this temperature is what we're already doing
-            if self.state.temperature.is_noise(new_state.temperature):
-                logger.debug('noise')
-                return
-            trend = self.state.temperature.compute_trend(new_state.temperature)
-            if trend and trend == heatpump_command['trend']:
-                logger.debug('we should tell it to do it again')
-            else:
-                logger.debug('not telling heatpump to %r', heatpump_command)
-                return
+            if self.state.temperature:
+                if self.state.temperature.is_noise(new_state.temperature):
+                    logger.debug('noise')
+                    return
+                trend = self.state.temperature.compute_trend(new_state.temperature)
+                if trend and trend == heatpump_command['trend']:
+                    logger.debug('we should tell it to do it again')
+                else:
+                    logger.debug('not telling heatpump to %r', heatpump_command)
+                    return
 
         function = heatpump_command['action']
         logger.debug('Sending command to heatpump: %s', function)
