@@ -65,14 +65,13 @@ _STREAM_HANDLER.setFormatter(_FORMATTER)
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 logger.addHandler(_STREAM_HANDLER)
 
-
 class Controller(object):
     """Main Class"""
     def __init__(self):
         self.dht22 = None
         self.heatpump = None
         self.iot = None
-        self.state = State()
+        self._state = State()
 
     def subscribe(self):
         """Set up MQTT subscriptions"""
@@ -114,25 +113,34 @@ class Controller(object):
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
 
-    def process_state(self, state):
-        """Determine what action (if any) to take based on the most recent state change"""
-        logger.debug('process_state: %s', state)
-        if not state:
-            return
+    def process_state(self, new_state):
+        """
+        Determines the action to take based on the new_state, and takes it.
+        """
+        logger.debug('current state: %r', self.state)
+        logger.debug('new state: %r', new_state)
+        if not new_state:
+            raise ValueError('please give a state')
 
-        try:
-            heatpump_command = self.heatpump.get_action(state['temperature'])
-        except KeyError:
-            return
+        heatpump_command = self.heatpump.get_action(new_state.temperature)
 
         if not heatpump_command:
+            logger.debug('nothing to do')
             return
 
         logger.debug('might be telling heatpump to %r', heatpump_command)
 
         if heatpump_command == self.heatpump.current_action:
-            logger.debug('not telling heatpump to %r', heatpump_command)
-            return
+            # command for this temperature is what we're already doing
+            if self.state.temperature.is_noise(new_state.temperature):
+                logger.debug('noise')
+                return
+            trend = self.state.temperature.compute_trend(new_state.temperature)
+            if trend == self.state.temperature.trend:
+                logger.debug('we should tell it to do it again')
+            else:
+                logger.debug('not telling heatpump to %r', heatpump_command)
+                return
 
         function = heatpump_command['action']
         logger.debug('Sending command to heatpump: %s', function)
@@ -165,9 +173,16 @@ class Controller(object):
             self.state.reset()
 
     @property
+    def state(self):
+        """Current state"""
+        return self._state
+
+    @property
     def environment(self):
         """Obtains a sample from the sensor"""
-        return self.dht22.sample
+        sample = self.dht22.sample
+        logger.debug('sample: %r', sample)
+        return sample
 
     def compute_state_difference(self, new_state):
         """Computes the difference between the current state and the new state"""
@@ -177,14 +192,14 @@ class Controller(object):
         new_state = deepcopy(new_state)
         if self.state.temperature:
             try:
-                if abs(self.state.temperature - new_state['temperature']) < 0.2:
+                if abs(self.state.temperature.value - new_state['temperature']) < 0.2:
                     del new_state['temperature']
             except KeyError:
                 pass
 
         if self.state.humidity:
             try:
-                if abs(self.state.humidity - new_state['humidity']) < 0.2:
+                if abs(self.state.humidity.value - new_state['humidity']) < 0.2:
                     del new_state['humidity']
             except KeyError:
                 pass
@@ -192,7 +207,10 @@ class Controller(object):
         return new_state
 
     def send_sample(self, environment):
-        """Send state to IoT"""
+        """
+        Determines the difference in the environment state and sends those
+        differences to IoT.  Also updates current state.
+        """
         new_state = {'temperature': environment.temperature,
                      'humidity': environment.humidity}
 
@@ -234,11 +252,11 @@ class Controller(object):
 
 class State(object):
     """Holds the current state"""
-    def __init__(self):
+    def __init__(self, humidity=None, temperature=None, function=None):
         """Constructor"""
-        self._humidity = None
-        self._temperature = None
-        self._function = None
+        self._humidity = humidity
+        self._temperature = temperature
+        self._function = function
 
     def reset(self):
         """Clears out the temperature, humidity and function properties"""
@@ -248,25 +266,31 @@ class State(object):
 
     @property
     def humidity(self):
-        """The humidity"""
-        if self._humidity:
-            return self._humidity['value']
-        return None
+        """The humidity DataItem"""
+        return self._humidity
 
     @humidity.setter
     def humidity(self, humidity):
-        self._humidity = {'value': humidity, 'update': time.time()}
+        if not humidity:
+            raise ValueError('humidity is required')
+        if not self._humidity:
+            self._humidity = DataItem(humidity)
+        else:
+            self._humidity.value = humidity
 
     @property
     def temperature(self):
-        """The temperature"""
-        if self._temperature:
-            return self._temperature['value']
-        return None
+        """The temperature DataItem"""
+        return self._temperature
 
     @temperature.setter
     def temperature(self, temperature):
-        self._temperature = {'value': temperature, 'update': time.time()}
+        if not temperature:
+            raise ValueError('temperature is required')
+        if not self._temperature:
+            self._temperature = DataItem(temperature)
+        else:
+            self._temperature.value = temperature
 
     @property
     def function(self):
@@ -293,15 +317,95 @@ class State(object):
         of humidity.
         """
         if self.humidity and self._temperature:
-            return min(self._humidity['update'], self._temperature['update'])
+            return min(self._humidity.last_update, self._temperature.last_update)
 
         if self._temperature:
-            return self._temperature['update']
+            return self._temperature.last_update
 
         if self._humidity:
-            return self._humidity['update']
+            return self._humidity.last_update
 
         return None
+
+    def __repr__(self):
+        pattern = '%s(humidity=%r, temperature=%r, function=%r)'
+        return pattern % (self.__class__.__name__,
+                          self.humidity,
+                          self.temperature,
+                          self.function)
+
+def _compute_trend(previous, current):
+    return (previous < current) - (current < previous)
+
+class DataItem(object):
+    """Class to hold the data about a sample"""
+    def __init__(self, value=None, last_update=None, previous_value=None, trend=None):
+        if not value:
+            raise ValueError('value is required')
+        self._value = value
+        if last_update:
+            self._last_update = last_update
+        else:
+            self._last_update = time.time()
+
+        self._previous_value = previous_value
+        self._trend = trend
+
+    def is_noise(self, new_value):
+        """
+        Determines whether a new value represents noise in the signal
+
+        Simply, if the value is different in the same direction as the trend, then
+        it is not noise, but if the value is only 0.1 against the trend, then it
+        is noise.
+        """
+        if not self.trend:
+            logger.debug('no trend')
+            return False
+
+        new_trend = _compute_trend(self.value, new_value)
+        if new_trend == self.trend:
+            logger.debug('same trend')
+            return False
+        return abs(new_value - self.value) < 0.2
+
+    def compute_trend(self, new_value):
+        """Computes the trend this new value represents"""
+        return _compute_trend(self.value, new_value)
+
+    @property
+    def value(self):
+        """The value of this data point"""
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        if not value:
+            raise ValueError('value is required')
+
+        self._previous_value = self._value
+        self._value = value
+        self._last_update = time.time()
+        if self._previous_value:
+            self._trend = _compute_trend(self._previous_value, value)
+
+    @property
+    def trend(self):
+        """Whether this data item is trending up or down"""
+        return self._trend
+
+    @property
+    def last_update(self):
+        """The time this data item was last updated"""
+        return self._last_update
+
+    def __repr__(self):
+        pattern = '%s(value=%r, last_update=%r, previous_value=%r, trend=%r)'
+        return pattern % (self.__class__.__name__,
+                          self.value,
+                          self.last_update,
+                          self._previous_value,
+                          self.trend)
 
 def _setup_logging():
     logger.setLevel(logging.DEBUG)
@@ -315,6 +419,8 @@ def _setup_logging():
     heatpump_logger.addHandler(_STREAM_HANDLER)
 
 def _main():
+    _setup_logging()
+
     dht22 = DHT22(DHT_PIN, DHT_ONOFF_PIN)
     led_verify = LEDVerify(LV_LE_PIN, LV_D0_PIN, LV_Q0_PIN)
 
@@ -338,11 +444,12 @@ def _main():
     controller.send_set_points()
     while True:
         environment_state = controller.environment
+        current_state = controller.state
         if environment_state:
-            reported_state = controller.send_sample(environment_state)
-            controller.process_state(reported_state)
+            if current_state:
+                controller.process_state(environment_state)
+                controller.send_sample(environment_state)
         time.sleep(2)
 
 if __name__ == '__main__':
-    _setup_logging()
     _main()

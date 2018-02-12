@@ -129,7 +129,7 @@ class DHT22(object):
 
 class Sample(object):
     """Sample class"""
-    def __init__(self, humidity, temperature):
+    def __init__(self, humidity=None, temperature=None):
         self._humidity = humidity
         self._temperature = temperature
 
@@ -142,6 +142,10 @@ class Sample(object):
     def temperature(self):
         """The temperature"""
         return self._temperature
+
+    def __repr__(self):
+        pattern = '%s(humidity=%r, temperature=%r)'
+        return pattern % (self.__class__.__name__, self.humidity, self.temperature)
 
 class Samples(object):
     """Samples class"""
