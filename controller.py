@@ -136,7 +136,7 @@ class Controller(object):
                 logger.debug('noise')
                 return
             trend = self.state.temperature.compute_trend(new_state.temperature)
-            if trend == self.state.temperature.trend:
+            if trend and trend == heatpump_command['trend']:
                 logger.debug('we should tell it to do it again')
             else:
                 logger.debug('not telling heatpump to %r', heatpump_command)

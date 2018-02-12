@@ -4,10 +4,11 @@ import logging
 
 _A = 'action'
 _C = 'command'
+_T = 'trend'
 
-START_COOLING = {_A: 'cooling', _C: 'maxcold'}
-SHUTDOWN = {_A: 'shutdown', _C: 'stokesoff'}
-START_HEATING = {_A: 'heating', _C: 'stokesheat'}
+START_COOLING = {_A: 'cooling', _C: 'maxcold', _T: 1}
+SHUTDOWN = {_A: 'shutdown', _C: 'stokesoff', _T: 0}
+START_HEATING = {_A: 'heating', _C: 'stokesheat', _T: -1}
 
 H1 = 'heating_start'
 H0 = 'heating_stop'
