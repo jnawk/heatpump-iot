@@ -446,8 +446,8 @@ def _main():
     while True:
         environment_state = controller.environment
         current_state = controller.state
-        if environment_state:
-            if current_state:
+        if environment_state and current_state:
+            if environment_state.temperature and environment_state.humidity:
                 controller.process_state(environment_state)
                 controller.send_sample(environment_state)
         time.sleep(2)
