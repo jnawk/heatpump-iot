@@ -13,6 +13,22 @@ STREAM_HANDLER.setFormatter(FORMATTER)
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 logger.setLevel(logging.WARNING)
 logger.addHandler(STREAM_HANDLER)
+
+def topics(shadow_update_topic):
+    """returns a dict containing the topics for a given thing"""
+    return {
+        'shadow_update': shadow_update_topic,
+        'shadow_update_accepted': '%s/%s' % (shadow_update_topic, 'accepted'),
+        'shadow_update_rejected': '%s/%s' % (shadow_update_topic, 'rejected'),
+        'update_state': '%s/%s' % (shadow_update_topic, 'delta')
+    }
+
+def setup_aws_logging(stream_handler):
+    """Configures AWS Logging"""
+    aws_logger = logging.getLogger('AWSIoTPythonSDK')
+    aws_logger.setLevel(logging.WARNING)
+    aws_logger.addHandler(stream_handler)
+
 class IoT(object):
     """Class to interact with AWS IoT"""
     def __init__(self, client_id):
