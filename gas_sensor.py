@@ -34,12 +34,32 @@ class Thing(object):
     def __init__(self):
         self.mcp9000 = None
         self.iot = None
+        self._temperature = None
+        self._last_update = None
 
-    def send_sample(self, temperature):
+
+    @property
+    def temperature(self):
+        return self._temperature
+
+    @temperature.setter
+    def temperature(self, temperature):
+        if not self.temperature:
+            self._temperature = temperature
+            self._send_sample()
+        elif self.temperature != temperature:
+            self._temperature = temperature
+            self._send_sample()
+        else
+            if time.time() - self._last_update < 60:
+                self._send_sample()
+
+    def _send_sample(self):
         """
         Sends state update to IoT
         """
-        message = {'state': {'reported': {'temperature': temperature}}}
+        self._last_update = time.time()
+        message = {'state': {'reported': {'temperature': self.temperature}}}
         logger.debug(message)
         try:
             self.iot.publish(TOPICS['shadow_update'], message)
