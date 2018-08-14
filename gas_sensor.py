@@ -52,7 +52,7 @@ class Thing(object):
             self._temperature = temperature
             self._send_sample()
         else:
-            if time.time() - self._last_update < 60:
+            if time.time() - self._last_update > 60:
                 self._send_sample()
 
     def _send_sample(self):
