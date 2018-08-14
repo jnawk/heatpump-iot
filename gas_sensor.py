@@ -40,6 +40,7 @@ class Thing(object):
 
     @property
     def temperature(self):
+        """The stored temperature"""
         return self._temperature
 
     @temperature.setter
@@ -50,7 +51,7 @@ class Thing(object):
         elif self.temperature != temperature:
             self._temperature = temperature
             self._send_sample()
-        else
+        else:
             if time.time() - self._last_update < 60:
                 self._send_sample()
 
@@ -93,7 +94,7 @@ def _main():
     thing.iot = iot
 
     while True:
-        thing.send_sample(mcp9000.temperature)
+        thing.temperature = mcp9000.temperature
         time.sleep(2)
 
 if __name__ == '__main__':
