@@ -47,7 +47,7 @@ class Thing(TemperatureSensor): # pylint: disable=too-few-public-methods
         """
         Sends state update to IoT
         """
-        message = {'current':{'state': {'reported': {'temperature': self.temperature.value}}}}
+        message = {'state': {'reported': {'temperature': self.temperature.value}}}
         logger.debug(message)
         try:
             self.iot.publish(TOPICS['shadow_update'], message)

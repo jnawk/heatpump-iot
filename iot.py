@@ -70,7 +70,7 @@ class IoT(object):
 
     def publish(self, topic, message):
         """wrapper around mqtt publish"""
-        message['current']['state']['reported']['thing'] = self.client_id
+        message['state']['reported']['thing'] = self.client_id
         message = json.dumps(message)
         try:
             self.mqtt_client.publish(topic, message, 1)
