@@ -72,7 +72,7 @@ def _main():
                               private_key_path=PRIVATE_KEY_PATH,
                               certificate_path=CERTIFICATE_PATH)
 
-    iot = iot = IoT(CLIENT_ID)
+    iot = IoT(CLIENT_ID)
     iot.connect(HOST, credentials)
 
 

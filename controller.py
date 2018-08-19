@@ -40,6 +40,7 @@ from iot import STREAM_HANDLER, HOST, ROOT_CA_PATH
 CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
 CLIENT_ID = '40stokesDHT'
+
 DHT_PIN = 22
 DHT_ONOFF_PIN = 18
 
@@ -342,7 +343,7 @@ def _main():
                               private_key_path=PRIVATE_KEY_PATH,
                               certificate_path=CERTIFICATE_PATH)
 
-    iot = iot = IoT(CLIENT_ID)
+    iot = IoT(CLIENT_ID)
     iot.connect(HOST, credentials)
 
     controller = Controller()
