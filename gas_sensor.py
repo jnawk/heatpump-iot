@@ -25,38 +25,29 @@ TOPICS = topics('$aws/things/40stokesMCP/shadow/update')
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 logger.addHandler(STREAM_HANDLER)
 
-class Thing(object):
+class Thing(TemperatureSensor): # pylint: disable=too-few-public-methods
     """Thing class"""
-    def __init__(self):
+    def __init__(self, temperature=None):
+        TemperatureSensor.__init__(self, temperature)
         self.mcp9000 = None
         self.iot = None
-        self._temperature = None
-        self._last_update = None
 
-
-    @property
-    def temperature(self):
-        """The stored temperature"""
-        return self._temperature
-
-    @temperature.setter
-    def temperature(self, temperature):
+    def _set_temperature(self, temperature):
         if not self.temperature:
-            self._temperature = temperature
+            self._temperature = DataItem(temperature)
             self._send_sample()
-        elif self.temperature != temperature:
-            self._temperature = temperature
+        elif self.temperature.value != temperature:
+            self._temperature.value = temperature
             self._send_sample()
         else:
-            if time.time() - self._last_update > 60:
+            if time.time() - self._temperature.last_update > 60:
                 self._send_sample()
 
     def _send_sample(self):
         """
         Sends state update to IoT
         """
-        self._last_update = time.time()
-        message = {'state': {'reported': {'temperature': self.temperature}}}
+        message = {'state': {'reported': {'temperature': self.temperature.value}}}
         logger.debug(message)
         try:
             self.iot.publish(TOPICS['shadow_update'], message)

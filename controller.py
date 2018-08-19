@@ -240,12 +240,13 @@ class Controller(object):
 
         return reported_state
 
-class State(object):
+class State(TemperatureSensor):
     """Holds the current state"""
     def __init__(self, humidity=None, temperature=None, function=None):
         """Constructor"""
+        TemperatureSensor.__init__(self, temperature)
+
         self._humidity = humidity
-        self._temperature = temperature
         self._function = function
 
     def reset(self):
@@ -268,13 +269,7 @@ class State(object):
         else:
             self._humidity.value = humidity
 
-    @property
-    def temperature(self):
-        """The temperature DataItem"""
-        return self._temperature
-
-    @temperature.setter
-    def temperature(self, temperature):
+    def _set_temperature(self, temperature):
         if not temperature:
             raise ValueError('temperature is required')
         if not self._temperature:
@@ -323,79 +318,6 @@ class State(object):
                           self.humidity,
                           self.temperature,
                           self.function)
-
-def _compute_trend(previous, current):
-    return (previous < current) - (current < previous)
-
-class DataItem(object):
-    """Class to hold the data about a sample"""
-    def __init__(self, value=None, last_update=None, previous_value=None, trend=None):
-        if not value:
-            raise ValueError('value is required')
-        self._value = value
-        if last_update:
-            self._last_update = last_update
-        else:
-            self._last_update = time.time()
-
-        self._previous_value = previous_value
-        self._trend = trend
-
-    def is_noise(self, new_value):
-        """
-        Determines whether a new value represents noise in the signal
-
-        Simply, if the value is different in the same direction as the trend, then
-        it is not noise, but if the value is only 0.1 against the trend, then it
-        is noise.
-        """
-        if not self.trend:
-            logger.debug('no trend')
-            return False
-
-        new_trend = _compute_trend(self.value, new_value)
-        if new_trend == self.trend:
-            logger.debug('same trend')
-            return False
-        return abs(new_value - self.value) < 0.2
-
-    def compute_trend(self, new_value):
-        """Computes the trend this new value represents"""
-        return _compute_trend(self.value, new_value)
-
-    @property
-    def value(self):
-        """The value of this data point"""
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        if not value:
-            raise ValueError('value is required')
-
-        self._previous_value = self._value
-        self._value = value
-        self._last_update = time.time()
-        if self._previous_value:
-            self._trend = _compute_trend(self._previous_value, value)
-
-    @property
-    def trend(self):
-        """Whether this data item is trending up or down"""
-        return self._trend
-
-    @property
-    def last_update(self):
-        """The time this data item was last updated"""
-        return self._last_update
-
-    def __repr__(self):
-        pattern = '%s(value=%r, last_update=%r, previous_value=%r, trend=%r)'
-        return pattern % (self.__class__.__name__,
-                          self.value,
-                          self.last_update,
-                          self._previous_value,
-                          self.trend)
 
 def _setup_logging():
     logger.setLevel(logging.DEBUG)
