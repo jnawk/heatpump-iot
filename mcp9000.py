@@ -3,7 +3,7 @@ Module for reading the temperature from the MCP9000 Thermocouple
 """
 import smbus
 
-class MCP9000(object):
+class MCP9000(object): # pylint: disable=too-few-public-methods
     """Class for reading the temperature from the MCP9000 Thermocouple"""
 
     def __init__(self, bus, address):
