@@ -34,13 +34,14 @@ class Thing(TemperatureSensor): # pylint: disable=too-few-public-methods
 
     def _set_temperature(self, temperature):
         if not self.temperature:
-            self._temperature = DataItem(temperature)
+            self.temperature = DataItem(temperature)
             self._send_sample()
         elif self.temperature.value != temperature:
-            self._temperature.value = temperature
+            self.temperature.value = temperature
             self._send_sample()
         else:
-            if time.time() - self._temperature.last_update > 60:
+            if time.time() - self.temperature.last_update > 60:
+                print('')
                 self._send_sample()
 
     def _send_sample(self):
