@@ -11,8 +11,6 @@ from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 from mcp9000 import  MCP9000
 from iot import IoT, Credentials, topics, setup_aws_logging
 
-HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
-ROOT_CA_PATH = '../root-CA.crt'
 CERTIFICATE_PATH = '../40stokesMCP.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesMCP.private.key'
 CLIENT_ID = '40stokesMCP'

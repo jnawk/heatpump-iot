@@ -35,8 +35,6 @@ from heatpump import Heatpump, H1, H0, C0, C1
 from gpio import DHT22, LEDVerify
 from iot import IoT, Credentials, topics, setup_aws_logging
 
-HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
-ROOT_CA_PATH = '../root-CA.crt'
 CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
 CLIENT_ID = '40stokesDHT'
