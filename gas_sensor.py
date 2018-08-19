@@ -41,7 +41,7 @@ class Thing(TemperatureSensor): # pylint: disable=too-few-public-methods
             self._send_sample()
         else:
             if time.time() - self.temperature.last_update > 60:
-                print('')
+                self.temperature.value = temperature
                 self._send_sample()
 
     def _send_sample(self):
