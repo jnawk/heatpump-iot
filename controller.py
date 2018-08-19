@@ -24,6 +24,8 @@ V2 board:
     When running the LED, drive pin 17 high and pin 25 low. The LEDs cathodes are
     connected to the LE pin on the 74HC4066.
 
+    The 74HC373N VCC is 3.3v
+
 """
 import logging
 import time
