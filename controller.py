@@ -33,7 +33,9 @@ from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 from heatpump import Heatpump, H1, H0, C0, C1
 
 from gpio import DHT22, LEDVerify
-from iot import IoT, Credentials, topics, setup_aws_logging
+from iot import IoT, Credentials, DataItem, TemperatureSensor
+from iot import topics, setup_aws_logging
+from iot import STREAM_HANDLER, HOST, ROOT_CA_PATH
 
 CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
@@ -49,12 +51,8 @@ DEFAULT_SETPOINTS = {H1: 16, H0: 18, C0: 22, C1: 24}
 
 TOPICS = topics('$aws/things/40stokesDHT/shadow/update')
 
-_FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_STREAM_HANDLER = logging.StreamHandler()
-_STREAM_HANDLER.setFormatter(_FORMATTER)
-
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
-logger.addHandler(_STREAM_HANDLER)
+logger.addHandler(STREAM_HANDLER)
 
 class Controller(object):
     """Main Class"""
@@ -402,11 +400,11 @@ class DataItem(object):
 def _setup_logging():
     logger.setLevel(logging.DEBUG)
 
-    setup_aws_logging(_STREAM_HANDLER)
+    setup_aws_logging(STREAM_HANDLER)
 
     heatpump_logger = logging.getLogger('heatpump')
     heatpump_logger.setLevel(logging.DEBUG)
-    heatpump_logger.addHandler(_STREAM_HANDLER)
+    heatpump_logger.addHandler(STREAM_HANDLER)
 
 def _main():
     _setup_logging()

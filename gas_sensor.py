@@ -9,7 +9,9 @@ import time
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 
 from mcp9000 import  MCP9000
-from iot import IoT, Credentials, topics, setup_aws_logging
+from iot import IoT, Credentials, DataItem, TemperatureSensor
+from iot import topics, setup_aws_logging
+from iot import STREAM_HANDLER, HOST, ROOT_CA_PATH
 
 CERTIFICATE_PATH = '../40stokesMCP.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesMCP.private.key'
@@ -20,12 +22,8 @@ MCP9000_ADDRESS = 0x63
 
 TOPICS = topics('$aws/things/40stokesMCP/shadow/update')
 
-_FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_STREAM_HANDLER = logging.StreamHandler()
-_STREAM_HANDLER.setFormatter(_FORMATTER)
-
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
-logger.addHandler(_STREAM_HANDLER)
+logger.addHandler(STREAM_HANDLER)
 
 class Thing(object):
     """Thing class"""
@@ -68,11 +66,11 @@ class Thing(object):
 def _setup_logging():
     logger.setLevel(logging.DEBUG)
 
-    setup_aws_logging(_STREAM_HANDLER)
+    setup_aws_logging(STREAM_HANDLER)
 
     gas_logger = logging.getLogger('gas')
     gas_logger.setLevel(logging.DEBUG)
-    gas_logger.addHandler(_STREAM_HANDLER)
+    gas_logger.addHandler(STREAM_HANDLER)
 
 def _main():
     _setup_logging()
