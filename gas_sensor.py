@@ -34,7 +34,7 @@ class Thing(TemperatureSensor): # pylint: disable=too-few-public-methods
 
     def _set_temperature(self, temperature):
         if not self.temperature:
-            self.temperature = DataItem(temperature)
+            self._temperature = DataItem(temperature)
             self._send_sample()
         elif self.temperature.value != temperature:
             self.temperature.value = temperature
