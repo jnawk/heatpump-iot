@@ -1,0 +1,14 @@
+common: &aws_iot
+  root_ca_path: ../root-CA.crt
+  endpoint: a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com
+
+gas_sensor:
+  aws_iot:
+    <<: *aws_iot
+    certificate_path: ../40stokesMCP.cert.pem
+    private_key_path: ../40stokesMCP.private.key
+    client_id: 40stokesMCP
+  mcp9000:
+    bus: 1
+    address: 0x63
+  log_level: DEBUG
