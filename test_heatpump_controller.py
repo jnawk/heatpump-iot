@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname('vendored/'))
 import time
 import unittest
 import logging
-from controller import Controller, DEFAULT_SETPOINTS, State
+from heatpump_controller import HeatpumpController, DEFAULT_SETPOINTS, State
 from heatpump import Heatpump, START_HEATING, START_COOLING
 from iot import IoT
 from gpio import Sample
@@ -18,30 +18,41 @@ STREAM_HANDLER = logging.StreamHandler(sys.stdout)
 
 def capture_logs():
     """Enables logging to stdout.  Call this to debug tests"""
-    logger = logging.getLogger('controller')
+    logger = logging.getLogger('heatpump_controller')
     logger.level = logging.DEBUG
     logger.addHandler(STREAM_HANDLER)
 
-class ControllerTest(unittest.TestCase):
+class HeatpumpControllerTest(unittest.TestCase):
     """Tests for the Controller class"""
     def setUp(self):
-        def _publish(_topic, _message):
-            pass
         iot = IoT(None)
-        iot.publish = _publish
+        iot.publish = lambda a, b: None
 
         heatpump = Heatpump()
+        heatpump.led_verify = object()
         heatpump.setpoints = DEFAULT_SETPOINTS
         heatpump._current_action = START_HEATING #pylint: disable=protected-access
 
-        self.controller = Controller()
+        self.controller = HeatpumpController({
+            'log_level': 'DEBUG',
+            'dht':{
+                'data_pin': None,
+                'onoff_pin': None
+            },
+            'led_verify':{
+                'le_pin': None,
+                'd0_pin': None,
+                'q0_pin': None
+            },
+            'default_setpoints': DEFAULT_SETPOINTS
+        })
         self.controller.state.humidity = 10
         self.controller.state.temperature = 10
         self.controller.heatpump = heatpump
         self.controller.iot = iot
 
     def tearDown(self):
-        logger = logging.getLogger('controller')
+        logger = logging.getLogger('heatpump_controller')
         logger.removeHandler(STREAM_HANDLER)
 
     def test_obvious_state_difference(self):

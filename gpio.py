@@ -17,6 +17,8 @@ except ImportError:
         return False
     if not _in_unittest():
         raise
+    else:
+        import fake_gpio as GPIO
 
 ON = 1
 OFF = 0
@@ -30,8 +32,6 @@ class LEDVerify(object):
         self.le_pin = le_pin
         self.d0_pin = d0_pin
         self.q0_pin = q0_pin
-
-        self.self_test()
 
     @property
     def state(self):
