@@ -36,7 +36,6 @@ from heatpump import Heatpump, H1, H0, C0, C1
 
 from gpio import DHT22, LEDVerify
 from iot import DataItem, TemperatureSensor
-from iot import topics
 
 CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
@@ -50,8 +49,6 @@ LV_D0_PIN = 17
 LV_Q0_PIN = 24
 
 DEFAULT_SETPOINTS = {H1: 16, H0: 18, C0: 22, C1: 24}
-
-TOPICS = topics('$aws/things/40stokesDHT/shadow/update')
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
@@ -93,10 +90,10 @@ class HeatpumpController(object):
         """Set up MQTT subscriptions"""
         logger.debug('subscribing...')
         self.iot.subscribe(
-            TOPICS['shadow_update_rejected'],
+            self.iot.topics['shadow_update_rejected'],
             self.shadow_update_rejected_callback)
         self.iot.subscribe(
-            TOPICS['update_state'],
+            self.iot.topics['update_state'],
             self.update_state_callback)
 
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
@@ -124,7 +121,7 @@ class HeatpumpController(object):
         message = {'state': {'reported': reported_state}}
         logger.debug("reported state: %s", message)
         try:
-            self.iot.publish(TOPICS['shadow_update'], message)
+            self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
@@ -171,7 +168,7 @@ class HeatpumpController(object):
         reported_state = {'function': function}
         message = {'state': {'reported': reported_state}}
         try:
-            self.iot.publish(TOPICS['shadow_update'], message)
+            self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
@@ -184,7 +181,7 @@ class HeatpumpController(object):
             }
         }
         try:
-            self.iot.publish(TOPICS['shadow_update'], message)
+            self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
@@ -260,7 +257,7 @@ class HeatpumpController(object):
         message = {'state': {'reported': reported_state}}
         logger.debug(message)
         try:
-            self.iot.publish(TOPICS['shadow_update'], message)
+            self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.state.reset()

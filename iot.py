@@ -20,13 +20,14 @@ logger.addHandler(STREAM_HANDLER)
 def _compute_trend(previous, current):
     return (previous < current) - (current < previous)
 
-def topics(shadow_update_topic):
+def topics(thing):
     """returns a dict containing the topics for a given thing"""
+    shadow_update_topic = '$aws/things/%s/shadow/update' % thing
     return {
         'shadow_update': shadow_update_topic,
-        'shadow_update_accepted': '%s/%s' % (shadow_update_topic, 'accepted'),
-        'shadow_update_rejected': '%s/%s' % (shadow_update_topic, 'rejected'),
-        'update_state': '%s/%s' % (shadow_update_topic, 'delta')
+        'shadow_update_accepted': '%s/accepted' % shadow_update_topic,
+        'shadow_update_rejected': '%s/rejected' % shadow_update_topic,
+        'update_state': '%s/delta' % shadow_update_topic
     }
 
 def setup_aws_logging(stream_handler):
@@ -40,6 +41,11 @@ class IoT(object):
     def __init__(self, client_id):
         self.client_id = client_id
         self.mqtt_client = None
+
+    @property
+    def topics(self):
+        """The topics for this thing"""
+        return topics(self.client_id)
 
     def connect(self, host, credentials):
         """Connect to the IoT service"""

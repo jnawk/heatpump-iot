@@ -10,9 +10,6 @@ from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 
 from mcp9000 import MCP9000
 from iot import DataItem, TemperatureSensor
-from iot import topics
-
-TOPICS = topics('$aws/things/40stokesMCP/shadow/update')
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
@@ -51,6 +48,6 @@ class GasSensor(TemperatureSensor): # pylint: disable=too-few-public-methods
         message = {'state': {'reported': {'temperature': self.temperature.value}}}
         logger.debug(message)
         try:
-            self.iot.publish(TOPICS['shadow_update'], message)
+            self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout')
