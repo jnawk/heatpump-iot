@@ -27,8 +27,8 @@ heatpump_controller:
     d0_pin: 17
     q0_pin: 24
   default_setpoints:
-    H1: 16
-    H0: 18
-    C0: 22
-    C1: 24
+    heating_start: 16
+    heating_stop: 18
+    cooling_stop: 22
+    cooling_start: 24
   log_level: DEBUG
