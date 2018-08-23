@@ -12,3 +12,23 @@ gas_sensor:
     bus: 1
     address: 0x63
   log_level: DEBUG
+
+heatpump_controller:
+  aws_iot:
+    <<: *aws_iot
+    certificate_path: ../40stokesDHT.cert.pem
+    private_key_path: ../40stokesDHT.private.key
+    client_id: 40stokesDHT
+  dht:
+    data_pin: 22
+    onoff_pin: 18
+  led_verify:
+    le_pin: 25
+    d0_pin: 17
+    q0_pin: 24
+  default_setpoints:
+    H1: 16
+    H0: 18
+    C0: 22
+    C1: 24
+  log_level: DEBUG
