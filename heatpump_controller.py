@@ -35,9 +35,8 @@ from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 from heatpump import Heatpump, H1, H0, C0, C1
 
 from gpio import DHT22, LEDVerify
-from iot import IoT, Credentials, DataItem, TemperatureSensor
-from iot import topics, setup_aws_logging
-from iot import STREAM_HANDLER, HOST, ROOT_CA_PATH
+from iot import DataItem, TemperatureSensor
+from iot import topics
 
 CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
 PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
@@ -55,15 +54,40 @@ DEFAULT_SETPOINTS = {H1: 16, H0: 18, C0: 22, C1: 24}
 TOPICS = topics('$aws/things/40stokesDHT/shadow/update')
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
-logger.addHandler(STREAM_HANDLER)
 
-class Controller(object):
+class HeatpumpController(object):
     """Main Class"""
-    def __init__(self):
-        self.dht22 = None
-        self.heatpump = None
+    def __init__(self, config):
         self.iot = None
         self._state = State()
+
+        logger.setLevel(logging.__dict__[config['log_level']])
+
+        dht_config = config['dht']
+        self.dht22 = DHT22(dht_config['data_pin'], dht_config['onoff_pin'])
+
+        led_verify_config = config['led_verify']
+        led_verify = LEDVerify(led_verify_config['le_pin'],
+                               led_verify_config['d0_pin'],
+                               led_verify_config['q0_pin'])
+
+        self.heatpump = Heatpump()
+        self.heatpump.setpoints = config['default_setpoints']
+        self.heatpump.led_verify = led_verify
+
+    def start(self):
+        """Starts the controller"""
+        self.heatpump.led_verify.self_test()
+        self.subscribe()
+        self.send_set_points()
+        while True:
+            environment_state = self.environment
+            current_state = self.state
+            if environment_state and current_state:
+                if environment_state.temperature and environment_state.humidity:
+                    self.process_state(environment_state)
+                    self.send_sample(environment_state)
+            time.sleep(2)
 
     def subscribe(self):
         """Set up MQTT subscriptions"""
@@ -321,48 +345,3 @@ class State(TemperatureSensor):
                           self.humidity,
                           self.temperature,
                           self.function)
-
-def _setup_logging():
-    logger.setLevel(logging.DEBUG)
-
-    setup_aws_logging(STREAM_HANDLER)
-
-    heatpump_logger = logging.getLogger('heatpump')
-    heatpump_logger.setLevel(logging.DEBUG)
-    heatpump_logger.addHandler(STREAM_HANDLER)
-
-def _main():
-    _setup_logging()
-
-    dht22 = DHT22(DHT_PIN, DHT_ONOFF_PIN)
-    led_verify = LEDVerify(LV_LE_PIN, LV_D0_PIN, LV_Q0_PIN)
-
-    heatpump = Heatpump()
-    heatpump.setpoints = DEFAULT_SETPOINTS
-    heatpump.led_verify = led_verify
-
-    credentials = Credentials(root_ca_path=ROOT_CA_PATH,
-                              private_key_path=PRIVATE_KEY_PATH,
-                              certificate_path=CERTIFICATE_PATH)
-
-    iot = IoT(CLIENT_ID)
-    iot.connect(HOST, credentials)
-
-    controller = Controller()
-    controller.heatpump = heatpump
-    controller.dht22 = dht22
-    controller.iot = iot
-
-    controller.subscribe()
-    controller.send_set_points()
-    while True:
-        environment_state = controller.environment
-        current_state = controller.state
-        if environment_state and current_state:
-            if environment_state.temperature and environment_state.humidity:
-                controller.process_state(environment_state)
-                controller.send_sample(environment_state)
-        time.sleep(2)
-
-if __name__ == '__main__':
-    _main()

@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname('vendored/'))
 
 # pylint: disable=wrong-import-position
 import unittest
-from controller import DEFAULT_SETPOINTS
+from heatpump_controller import DEFAULT_SETPOINTS
 from heatpump import Heatpump, H1, H0, C0, C1, START_HEATING, SHUTDOWN, START_COOLING
 
 class HeatpumpTest(unittest.TestCase):
