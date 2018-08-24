@@ -6,9 +6,6 @@ import json
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 
-HOST = 'a1pxxd60vwqsll.iot.ap-southeast-2.amazonaws.com'
-ROOT_CA_PATH = '../root-CA.crt'
-
 FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 STREAM_HANDLER = logging.StreamHandler()
 STREAM_HANDLER.setFormatter(FORMATTER)

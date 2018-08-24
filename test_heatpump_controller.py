@@ -1,6 +1,4 @@
 """Tests for the controller module"""
-from __future__ import print_function
-
 import os
 import sys
 sys.path.append(os.path.dirname('vendored/'))
@@ -9,10 +7,12 @@ sys.path.append(os.path.dirname('vendored/'))
 import time
 import unittest
 import logging
-from heatpump_controller import HeatpumpController, DEFAULT_SETPOINTS, State
-from heatpump import Heatpump, START_HEATING, START_COOLING
+
+import heatpump_controller
+import heatpump as hp
+import gpio
+
 from iot import IoT
-from gpio import Sample
 
 STREAM_HANDLER = logging.StreamHandler(sys.stdout)
 
@@ -28,12 +28,12 @@ class HeatpumpControllerTest(unittest.TestCase):
         iot = IoT(None)
         iot.publish = lambda a, b: None
 
-        heatpump = Heatpump()
+        heatpump = hp.Heatpump()
         heatpump.led_verify = object()
-        heatpump.setpoints = DEFAULT_SETPOINTS
-        heatpump._current_action = START_HEATING #pylint: disable=protected-access
+        heatpump.setpoints = heatpump_controller.DEFAULT_SETPOINTS
+        heatpump._current_action = hp.START_HEATING #pylint: disable=protected-access
 
-        self.controller = HeatpumpController({
+        self.controller = heatpump_controller.HeatpumpController({
             'log_level': 'DEBUG',
             'dht':{
                 'data_pin': None,
@@ -44,7 +44,7 @@ class HeatpumpControllerTest(unittest.TestCase):
                 'd0_pin': None,
                 'q0_pin': None
             },
-            'default_setpoints': DEFAULT_SETPOINTS
+            'default_setpoints': heatpump_controller.DEFAULT_SETPOINTS
         })
         self.controller.state.humidity = 10
         self.controller.state.temperature = 10
@@ -107,7 +107,7 @@ class HeatpumpControllerTest(unittest.TestCase):
         self.controller.state._temperature._last_update = last_update #pylint: disable=protected-access
         self.assertEquals(last_update, self.controller.state.last_update)
 
-        state_difference = self.controller.send_sample(Sample(10, 10))
+        state_difference = self.controller.send_sample(gpio.Sample(10, 10))
         self.assertIsNotNone(state_difference)
 
     def test_action_already_happening(self): #pylint: disable=no-self-use
@@ -120,7 +120,7 @@ class HeatpumpControllerTest(unittest.TestCase):
 
         self.controller.heatpump.send_command = _send_command
 
-        state = Sample(temperature=10)
+        state = gpio.Sample(temperature=10)
         self.controller.process_state(state)
 
     def test_action_when_none(self):
@@ -129,18 +129,18 @@ class HeatpumpControllerTest(unittest.TestCase):
         currently doing anything
         """
         def _send_command(command):
-            self.assertEquals(command, START_HEATING)
+            self.assertEquals(command, hp.START_HEATING)
 
         self.controller.heatpump.send_command = _send_command
 
-        state = Sample(temperature=10)
+        state = gpio.Sample(temperature=10)
         self.controller.heatpump._current_action = None #pylint: disable=protected-access
         self.controller.process_state(state)
 
     def test_initial_update(self):
         """Verifies we don't blow up when it's the first run"""
         self.controller.state.reset()
-        _ = self.controller.send_sample(Sample(10, 10))
+        _ = self.controller.send_sample(gpio.Sample(10, 10))
 
     def test_trend_continues_up(self):
         """
@@ -157,10 +157,10 @@ class HeatpumpControllerTest(unittest.TestCase):
         self.controller.state.temperature = 25 # trend = up!
         self.assertEquals(self.controller.state.temperature.trend, 1)
 
-        self.controller.heatpump._current_action = START_COOLING #pylint: disable=protected-access
+        self.controller.heatpump._current_action = hp.START_COOLING #pylint: disable=protected-access
 
         with(self.assertRaises(_CommandSent)):
-            self.controller.process_state(Sample(temperature=26))
+            self.controller.process_state(gpio.Sample(temperature=26))
 
     def test_trend_continues_down(self):
         """
@@ -180,12 +180,12 @@ class HeatpumpControllerTest(unittest.TestCase):
         #self.controller.heatpump._current_action = START_COOLING #pylint: disable=protected-access
 
         with(self.assertRaises(_CommandSent)):
-            self.controller.process_state(Sample(temperature=8))
+            self.controller.process_state(gpio.Sample(temperature=8))
 
 class StateTest(unittest.TestCase):
     """Tests for the State class"""
     def setUp(self):
-        self.state = State()
+        self.state = heatpump_controller.State()
 
     def test_last_update(self):
         """

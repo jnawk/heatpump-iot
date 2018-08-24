@@ -32,23 +32,17 @@ import time
 from copy import deepcopy
 
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
-from heatpump import Heatpump, H1, H0, C0, C1
 
-from gpio import DHT22, LEDVerify
-from iot import DataItem, TemperatureSensor
+import heatpump
+import gpio
+import iot
 
-CERTIFICATE_PATH = '../40stokesDHT.cert.pem'
-PRIVATE_KEY_PATH = '../40stokesDHT.private.key'
-CLIENT_ID = '40stokesDHT'
-
-DHT_PIN = 22
-DHT_ONOFF_PIN = 18
-
-LV_LE_PIN = 25
-LV_D0_PIN = 17
-LV_Q0_PIN = 24
-
-DEFAULT_SETPOINTS = {H1: 16, H0: 18, C0: 22, C1: 24}
+DEFAULT_SETPOINTS = {
+    heatpump.H1: 16,
+    heatpump.H0: 18,
+    heatpump.C0: 22,
+    heatpump.C1: 24
+}
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
@@ -61,14 +55,14 @@ class HeatpumpController(object):
         logger.setLevel(logging.__dict__[config['log_level']])
 
         dht_config = config['dht']
-        self.dht22 = DHT22(dht_config['data_pin'], dht_config['onoff_pin'])
+        self.dht22 = gpio.DHT22(dht_config['data_pin'], dht_config['onoff_pin'])
 
         led_verify_config = config['led_verify']
-        led_verify = LEDVerify(led_verify_config['le_pin'],
-                               led_verify_config['d0_pin'],
-                               led_verify_config['q0_pin'])
+        led_verify = gpio.LEDVerify(led_verify_config['le_pin'],
+                                    led_verify_config['d0_pin'],
+                                    led_verify_config['q0_pin'])
 
-        self.heatpump = Heatpump()
+        self.heatpump = heatpump.Heatpump()
         self.heatpump.setpoints = config['default_setpoints']
         self.heatpump.led_verify = led_verify
 
@@ -264,11 +258,11 @@ class HeatpumpController(object):
 
         return reported_state
 
-class State(TemperatureSensor):
+class State(iot.TemperatureSensor):
     """Holds the current state"""
     def __init__(self, humidity=None, temperature=None, function=None):
         """Constructor"""
-        TemperatureSensor.__init__(self, temperature)
+        super(State, self).__init__(self, temperature)
 
         self._humidity = humidity
         self._function = function
@@ -289,7 +283,7 @@ class State(TemperatureSensor):
         if not humidity:
             raise ValueError('humidity is required')
         if not self._humidity:
-            self._humidity = DataItem(humidity)
+            self._humidity = iot.DataItem(humidity)
         else:
             self._humidity.value = humidity
 
@@ -297,7 +291,7 @@ class State(TemperatureSensor):
         if not temperature:
             raise ValueError('temperature is required')
         if not self._temperature:
-            self._temperature = DataItem(temperature)
+            self._temperature = iot.DataItem(temperature)
         else:
             self._temperature.value = temperature
 

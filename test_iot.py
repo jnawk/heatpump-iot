@@ -1,6 +1,4 @@
 """Tests for the iot module"""
-from __future__ import print_function
-
 import os
 import sys
 sys.path.append(os.path.dirname('vendored/'))
@@ -8,7 +6,6 @@ sys.path.append(os.path.dirname('vendored/'))
 # pylint: disable=wrong-import-position
 import unittest
 import iot
-from iot import DataItem
 
 class ComputeTrendTest(unittest.TestCase):
     """Tests for the _compute_trend method"""
@@ -40,7 +37,7 @@ class ComputeTrendTest(unittest.TestCase):
 class DataItemTest(unittest.TestCase):
     """Tests for the DataItem class"""
     def setUp(self):
-        self.data_item = DataItem(20)
+        self.data_item = iot.DataItem(20)
 
     def test_noise_no_trend(self):
         """Verifies no value is noise when there is no previous value"""

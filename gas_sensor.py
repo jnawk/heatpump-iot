@@ -8,19 +8,22 @@ import time
 
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 
-from mcp9000 import MCP9000
-from iot import DataItem, TemperatureSensor
+import mcp9000
+import iot
+
+# from mcp9000 import MCP9000
+# from iot import DataItem, TemperatureSensor
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
-class GasSensor(TemperatureSensor): # pylint: disable=too-few-public-methods
+class GasSensor(iot.TemperatureSensor): # pylint: disable=too-few-public-methods
     """Gas Sensor Controller Class"""
     def __init__(self, config):
-        TemperatureSensor.__init__(self)
+        super(GasSensor, self).__init__(self)
         logger.setLevel(logging.__dict__[config['log_level']])
 
         mcp9000_config = config['mcp9000']
-        self.mcp9000 = MCP9000(mcp9000_config['bus'], mcp9000_config['address'])
+        self.mcp9000 = mcp9000.MCP9000(mcp9000_config['bus'], mcp9000_config['address'])
         self.iot = None
 
     def start(self):
@@ -31,7 +34,7 @@ class GasSensor(TemperatureSensor): # pylint: disable=too-few-public-methods
 
     def _set_temperature(self, temperature):
         if not self.temperature:
-            self._temperature = DataItem(temperature)
+            self._temperature = iot.DataItem(temperature)
             self._send_sample()
         elif self.temperature.value != temperature:
             self.temperature.value = temperature
