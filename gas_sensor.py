@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 class GasSensor(iot.TemperatureSensor):
     """Gas Sensor Controller Class"""
     def __init__(self, config):
-        super(GasSensor, self).__init__(self)
+        super(GasSensor, self).__init__()
         self.iot = None
 
         try:
