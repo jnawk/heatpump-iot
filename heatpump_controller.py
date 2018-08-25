@@ -75,6 +75,7 @@ class HeatpumpController(object):
         self.heatpump.led_verify.self_test()
         self.subscribe()
         self.send_set_points()
+        self.iot.publish(self.gas_sensor.topics['get_state'], '', add_thing=False)
         while True:
             environment_state = self.environment
             current_state = self.state
@@ -95,6 +96,9 @@ class HeatpumpController(object):
             self.update_state_callback)
         self.iot.subscribe(
             self.gas_sensor.topics['update_state'],
+            self.update_gas_heater_state)
+        self.iot.subscribe(
+            self.gas_sensor.topics['get_state_accepted'],
             self.update_gas_heater_state)
 
     def update_gas_heater_state(self, _client, _userdata, message):
