@@ -75,8 +75,6 @@ class HeatpumpController(object):
         self.heatpump.led_verify.self_test()
         self.subscribe()
         self.send_set_points()
-
-        logger.debug('asking for gas_sensor update (topic %s)', self.gas_sensor.topics['get_state'])
         self.iot.publish(self.gas_sensor.topics['get_state'], '')
 
         while True:
@@ -106,7 +104,7 @@ class HeatpumpController(object):
 
     def update_gas_heater_state(self, _client, _userdata, message):
         """Callback to process a new state update from the gas_sensor"""
-        logger.debug(message)
+        self.gas_sensor.temperature = message['state']['reported']['temperature']
 
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
@@ -257,11 +255,12 @@ class HeatpumpController(object):
         except KeyError:
             pass
 
-        logger.debug('last_update: %s, now: %s, t: %s, h: %s',
+        logger.debug('last_update: %s, now: %s, t: %s, h: %s, gs: %s',
                      str(now),
                      str(self.state.last_update),
                      str(environment.temperature),
-                     str(environment.humidity))
+                     str(environment.humidity),
+                     str(self.gas_sensor.heater_is_on))
 
         if not reported_state:
             return None
