@@ -8,7 +8,10 @@ import time
 
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 
-import mcp9000
+try:
+    import mcp9000
+except ImportError:
+    pass
 import iot
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
