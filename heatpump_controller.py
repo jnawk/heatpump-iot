@@ -75,7 +75,10 @@ class HeatpumpController(object):
         self.heatpump.led_verify.self_test()
         self.subscribe()
         self.send_set_points()
+
+        logger.debug('asking for gas_sensor update (topic %s)', self.gas_sensor.topics['get_state'])
         self.iot.publish(self.gas_sensor.topics['get_state'], '')
+
         while True:
             environment_state = self.environment
             current_state = self.state
