@@ -273,7 +273,7 @@ class State(iot.TemperatureSensor):
     """Holds the current state"""
     def __init__(self, humidity=None, temperature=None, function=None):
         """Constructor"""
-        super(State, self).__init__(self, temperature)
+        super(State, self).__init__(temperature)
 
         self._humidity = humidity
         self._function = function
