@@ -104,7 +104,11 @@ class HeatpumpController(object):
 
     def update_gas_heater_state(self, _client, _userdata, message):
         """Callback to process a new state update from the gas_sensor"""
-        self.gas_sensor.temperature = message['state']['reported']['temperature']
+        try:
+            current_state = message['current']
+        except KeyError:
+            current_state = message
+        self.gas_sensor.temperature = current_state['state']['reported']['temperature']
 
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
