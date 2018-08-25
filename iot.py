@@ -25,9 +25,9 @@ def topics(thing):
         'shadow_update_accepted': '%s/accepted' % topic_prefix,
         'shadow_update_rejected': '%s/rejected' % topic_prefix,
         'update_state': '%s/delta' % topic_prefix,
-        'get_state': '%s/get' % topci_prefix,
-        'get_state_accepted': '%s/get/accepted' % topci_prefix,
-        'get_state_rejected': '%s/get/rejected' % topci_prefix
+        'get_state': '%s/get' % topic_prefix,
+        'get_state_accepted': '%s/get/accepted' % topic_prefix,
+        'get_state_rejected': '%s/get/rejected' % topic_prefix
     }
 
 def setup_aws_logging(stream_handler):
