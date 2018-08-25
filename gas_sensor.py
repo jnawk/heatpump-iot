@@ -20,17 +20,15 @@ class GasSensor(iot.TemperatureSensor):
     """Gas Sensor Controller Class"""
     def __init__(self, config):
         super(GasSensor, self).__init__(self)
-        logger.setLevel(logging.__dict__[config['log_level']])
         self.iot = None
 
         try:
+            logger.setLevel(logging.__dict__[config['log_level']])
             mcp9000_config = config['mcp9000']
             self.mcp9000 = mcp9000.MCP9000(mcp9000_config['bus'], mcp9000_config['address'])
-
+        except KeyError:
             self.threshold = config['threshold']
             self.client_id = config['client_id']
-        except KeyError:
-            pass
 
     def start(self):
         """Start the controller"""
