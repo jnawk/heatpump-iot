@@ -147,6 +147,11 @@ class HeatpumpController(object):
 
         heatpump_command = self.heatpump.get_action(new_state.temperature)
 
+        try:
+            logger.debug('gs: %s', str(self.gas_sensor.heater_is_on))
+        except AttributeError:
+            pass
+
         if not heatpump_command:
             logger.debug('nothing to do')
             return
@@ -255,12 +260,11 @@ class HeatpumpController(object):
         except KeyError:
             pass
 
-        logger.debug('last_update: %s, now: %s, t: %s, h: %s, gs: %s',
+        logger.debug('last_update: %s, now: %s, t: %s, h: %s'
                      str(now),
                      str(self.state.last_update),
                      str(environment.temperature),
-                     str(environment.humidity),
-                     str(self.gas_sensor.heater_is_on))
+                     str(environment.humidity))
 
         if not reported_state:
             return None
