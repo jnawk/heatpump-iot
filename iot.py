@@ -74,11 +74,11 @@ class IoT(object):
 
         self.mqtt_client.subscribe(topic, 1, _callback)
 
-    def publish(self, topic, message, add_thing=True):
+    def publish(self, topic, message):
         """wrapper around mqtt publish"""
-        if add_thing:
+        if not type(message) == str:
             message['state']['reported']['thing'] = self.client_id
-        message = json.dumps(message)
+            message = json.dumps(message)
         try:
             self.mqtt_client.publish(topic, message, 1)
         except publishTimeoutException:
