@@ -19,12 +19,15 @@ def _compute_trend(previous, current):
 
 def topics(thing):
     """returns a dict containing the topics for a given thing"""
-    shadow_update_topic = '$aws/things/%s/shadow/update' % thing
+    topic_prefix = '$aws/things/%s/shadow' % thing
     return {
-        'shadow_update': shadow_update_topic,
-        'shadow_update_accepted': '%s/accepted' % shadow_update_topic,
-        'shadow_update_rejected': '%s/rejected' % shadow_update_topic,
-        'update_state': '%s/delta' % shadow_update_topic
+        'shadow_update': '%s/update' % topic_prefix,
+        'shadow_update_accepted': '%s/accepted' % topic_prefix,
+        'shadow_update_rejected': '%s/rejected' % topic_prefix,
+        'update_state': '%s/delta' % topic_prefix,
+        'get_state': '%s/get',
+        'get_state_accepted': '%s/get/accepted',
+        'get_state_rejected': '%s/get/rejected'
     }
 
 def setup_aws_logging(stream_handler):
@@ -71,9 +74,10 @@ class IoT(object):
 
         self.mqtt_client.subscribe(topic, 1, _callback)
 
-    def publish(self, topic, message):
+    def publish(self, topic, message, add_thing=True):
         """wrapper around mqtt publish"""
-        message['state']['reported']['thing'] = self.client_id
+        if add_thing:
+            message['state']['reported']['thing'] = self.client_id
         message = json.dumps(message)
         try:
             self.mqtt_client.publish(topic, message, 1)
