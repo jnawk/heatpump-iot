@@ -260,7 +260,7 @@ class HeatpumpController(object):
         except KeyError:
             pass
 
-        logger.debug('last_update: %s, now: %s, t: %s, h: %s'
+        logger.debug('last_update: %s, now: %s, t: %s, h: %s',
                      str(now),
                      str(self.state.last_update),
                      str(environment.temperature),
