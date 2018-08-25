@@ -96,7 +96,7 @@ class HeatpumpController(object):
             self.iot.topics['update_state'],
             self.update_state_callback)
         self.iot.subscribe(
-            self.gas_sensor.topics['update_state'],
+            self.gas_sensor.topics['update_document'],
             self.update_gas_heater_state)
         self.iot.subscribe(
             self.gas_sensor.topics['get_state_accepted'],
