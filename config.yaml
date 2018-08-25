@@ -32,3 +32,6 @@ heatpump_controller:
     cooling_stop: 22
     cooling_start: 24
   log_level: DEBUG
+  gas_sensor:
+    client_id: 40stokesMCP
+    threshold: 40

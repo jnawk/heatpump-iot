@@ -36,6 +36,7 @@ from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 import heatpump
 import gpio
 import iot
+import gas_sensor
 
 DEFAULT_SETPOINTS = {
     heatpump.H1: 16,
@@ -66,6 +67,9 @@ class HeatpumpController(object):
         self.heatpump.setpoints = config['default_setpoints']
         self.heatpump.led_verify = led_verify
 
+        gas_sensor_config = config['gas_sensor']
+        self.gas_sensor = gas_sensor.GasSensor(gas_sensor_config)
+
     def start(self):
         """Starts the controller"""
         self.heatpump.led_verify.self_test()
@@ -89,6 +93,13 @@ class HeatpumpController(object):
         self.iot.subscribe(
             self.iot.topics['update_state'],
             self.update_state_callback)
+        self.iot.subscribe(
+            self.gas_sensor.topics['update_state'],
+            self.update_gas_heater_state)
+
+    def update_gas_heater_state(self, _client, _userdata, message):
+        """Callback to process a new state update from the gas_sensor"""
+        logger.debug(message)
 
     def shadow_update_rejected_callback(self, _client, _userdata, _message):
         """State update rejected callback function"""
