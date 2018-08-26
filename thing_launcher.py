@@ -14,9 +14,10 @@ import iot
 
 def configure_logging(logging_config):
     """Configure logging"""
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    stream_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    cwlogs_formatter = logging.Formatter('%(levelname)s - %(message)s')
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
+    stream_handler.setFormatter(stream_formatter)
 
     watchtower_config = {
         'use_queues': True,
@@ -38,8 +39,8 @@ def configure_logging(logging_config):
             watchtower_config['boto3_session'] = session
 
             cwlogs_handler = watchtower.CloudWatchLogHandler(**watchtower_config)
-            cwlogs_handler.setFormatter(formatter)
-            
+            cwlogs_handler.setFormatter(cwlogs_formatter)
+
             logger.addHandler(cwlogs_handler)
         except KeyError:
             pass
