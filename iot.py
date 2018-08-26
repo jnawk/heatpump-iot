@@ -31,11 +31,6 @@ def topics(thing):
         'get_state_rejected': '%s/get/rejected' % topic_prefix
     }
 
-def setup_aws_logging(stream_handler):
-    """Configures AWS Logging"""
-    aws_logger = logging.getLogger('AWSIoTPythonSDK')
-    aws_logger.setLevel(logging.WARNING)
-    aws_logger.addHandler(stream_handler)
 
 class IoT(object):
     """Class to interact with AWS IoT"""
