@@ -5,8 +5,11 @@ import os
 import re
 import logging
 import yaml
+
+from botocore.exceptions import ProfileNotFound
 import boto3
 import watchtower
+
 
 import iot
 
@@ -38,6 +41,8 @@ def configure_logging(logging_config):
             cwlogs_handler = watchtower.CloudWatchLogHandler(**watchtower_config)
             logger.addHandler(cwlogs_handler)
         except KeyError:
+            pass
+        except ProfileNotFound:
             pass
 
 if __name__ == "__main__":
