@@ -65,8 +65,11 @@ class HeatpumpController(object):
         self.heatpump.setpoints = config['default_setpoints']
         self.heatpump.led_verify = led_verify
 
-        gas_sensor_config = config['gas_sensor']
-        self.gas_sensor = gas_sensor.GasSensor(gas_sensor_config)
+        try:
+            gas_sensor_config = config['gas_sensor']
+            self.gas_sensor = gas_sensor.GasSensor(gas_sensor_config)
+        except KeyError:
+            pass
 
     def start(self):
         """Starts the controller"""
