@@ -38,6 +38,8 @@ def configure_logging(logging_config):
             watchtower_config['boto3_session'] = session
 
             cwlogs_handler = watchtower.CloudWatchLogHandler(**watchtower_config)
+            cwlogs_handler.setFormatter(formatter)
+            
             logger.addHandler(cwlogs_handler)
         except KeyError:
             pass
