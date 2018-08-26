@@ -47,3 +47,5 @@ logging:
     level: WARNING
   gas_sensor: *gas_logging
   heatpump_controller: *heatpump_logging
+  heatpump:
+    level: DEBUG
