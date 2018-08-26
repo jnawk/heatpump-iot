@@ -23,7 +23,6 @@ class GasSensor(iot.TemperatureSensor):
         self.iot = None
 
         try:
-            logger.setLevel(logging.__dict__[config['log_level']])
             mcp9000_config = config['mcp9000']
             self.mcp9000 = mcp9000.MCP9000(mcp9000_config['bus'], mcp9000_config['address'])
         except KeyError:

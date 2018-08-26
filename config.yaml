@@ -11,7 +11,10 @@ gas_sensor:
   mcp9000:
     bus: 1
     address: 0x63
-  log_level: DEBUG
+  logging: &gas_logging
+    level: DEBUG
+    log_group: /40stokes/MCP
+    aws_profile: 40stokesMCP
 
 heatpump_controller:
   aws_iot:
@@ -31,7 +34,16 @@ heatpump_controller:
     heating_stop: 18
     cooling_stop: 22
     cooling_start: 24
-  log_level: DEBUG
+  logging: &heatpump_logging
+    level: DEBUG
+    log_group: /40stokes/DHT
+    aws_profile: 40stokesDHT
   gas_sensor:
     client_id: 40stokesMCP
     threshold: 40
+
+logging:
+  AWSIoTPythonSDK:
+    level: WARNING
+  gas_sensor: *gas_logging
+  heatpump_controller: *heatpump_logging

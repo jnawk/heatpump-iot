@@ -53,8 +53,6 @@ class HeatpumpController(object):
         self.iot = None
         self._state = State()
 
-        logger.setLevel(logging.__dict__[config['log_level']])
-
         dht_config = config['dht']
         self.dht22 = gpio.DHT22(dht_config['data_pin'], dht_config['onoff_pin'])
 
