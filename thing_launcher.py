@@ -10,7 +10,6 @@ from botocore.exceptions import ProfileNotFound
 import boto3
 import watchtower
 
-
 import iot
 
 def configure_logging(logging_config):
