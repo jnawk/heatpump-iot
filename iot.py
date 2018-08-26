@@ -77,7 +77,7 @@ class IoT(object):
 
     def publish(self, topic, message):
         """wrapper around mqtt publish"""
-        if not type(message) == str:
+        if not isinstance(message, str):
             message['state']['reported']['thing'] = self.client_id
             message = json.dumps(message)
         try:
