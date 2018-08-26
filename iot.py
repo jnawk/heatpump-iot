@@ -57,7 +57,7 @@ class IoT(object):
         mqtt_client.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
         mqtt_client.configureDrainingFrequency(2)  # Draining: 2 Hz
         mqtt_client.configureConnectDisconnectTimeout(10)  # 10 sec
-        mqtt_client.configureMQTTOperationTimeout(5)  # 5 sec
+        mqtt_client.configureMQTTOperationTimeout(30)  # 30 sec
 
         mqtt_client.connect()
         self.mqtt_client = mqtt_client
