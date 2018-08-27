@@ -82,14 +82,14 @@ class Heatpump(object):
         raise IOError()
 
     def _is_hot(self, temperature):
-        logger.debug('%s > %s: %r',
+        logger.debug('%s > %s: is_hot: %r',
                      temperature,
                      self._setpoints[C1],
                      temperature > self._setpoints[C1])
         return self._has_cooling() and temperature > self._setpoints[C1]
 
     def _is_cold(self, temperature):
-        logger.debug('%s < %s: %r',
+        logger.debug('%s < %s: is_cold: %r',
                      temperature,
                      self._setpoints[H1],
                      temperature < self._setpoints[H1])
