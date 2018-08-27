@@ -21,9 +21,9 @@ def topics(thing):
     """returns a dict containing the topics for a given thing"""
     topic_prefix = '$aws/things/%s/shadow' % thing
     return {
-        'shadow_update': '%s/shadow/update' % topic_prefix,
-        'shadow_update_accepted': '%s/shadow/update/accepted' % topic_prefix,
-        'shadow_update_rejected': '%s/shadow/update/rejected' % topic_prefix,
+        'shadow_update': '%s/update' % topic_prefix,
+        'shadow_update_accepted': '%s/update/accepted' % topic_prefix,
+        'shadow_update_rejected': '%s/update/rejected' % topic_prefix,
         'update_state': '%s/delta' % topic_prefix,
         'update_document': '%s/update/documents' % topic_prefix,
         'get_state': '%s/get' % topic_prefix,
