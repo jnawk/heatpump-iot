@@ -6,13 +6,7 @@ import json
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from AWSIoTPythonSDK.exception.AWSIoTExceptions import publishTimeoutException
 
-FORMATTER = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-STREAM_HANDLER = logging.StreamHandler()
-STREAM_HANDLER.setFormatter(FORMATTER)
-
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
-logger.setLevel(logging.WARNING)
-logger.addHandler(STREAM_HANDLER)
 
 def _compute_trend(previous, current):
     return (previous < current) - (current < previous)
