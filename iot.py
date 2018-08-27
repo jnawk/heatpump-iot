@@ -18,7 +18,7 @@ def topics(thing):
         'shadow_update': '%s/update' % topic_prefix,
         'shadow_update_accepted': '%s/update/accepted' % topic_prefix,
         'shadow_update_rejected': '%s/update/rejected' % topic_prefix,
-        'update_state': '%s/delta' % topic_prefix,
+        'update_state': '%s/update/delta' % topic_prefix,
         'update_document': '%s/update/documents' % topic_prefix,
         'get_state': '%s/get' % topic_prefix,
         'get_state_accepted': '%s/get/accepted' % topic_prefix,

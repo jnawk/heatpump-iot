@@ -94,7 +94,7 @@ class HeatpumpController(object):
             self.iot.topics['shadow_update_rejected'],
             self.shadow_update_rejected_callback)
         self.iot.subscribe(
-            self.iot.topics['update_document'],
+            self.iot.topics['update_state'],
             self.update_state_callback)
         self.iot.subscribe(
             self.gas_sensor.topics['update_document'],
