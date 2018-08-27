@@ -68,6 +68,7 @@ class IoT(object):
             message = json.loads(message.payload)
             callback(client, userdata, message)
 
+        logger.debug('subscribing %s', topic)
         self.mqtt_client.subscribe(topic, 1, _callback)
 
     def publish(self, topic, message):
