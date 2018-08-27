@@ -200,6 +200,7 @@ class HeatpumpController(object):
                 'reported': self.heatpump.setpoints
             }
         }
+        logger.debug(message)
         try:
             self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
