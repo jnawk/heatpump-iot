@@ -49,3 +49,5 @@ logging:
   heatpump_controller: *heatpump_logging
   heatpump:
     level: DEBUG
+  iot:
+    level: DEBUG
