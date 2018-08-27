@@ -202,7 +202,7 @@ class HeatpumpController(object):
         }
         logger.debug(message)
         try:
-            self.iot.publish(self.iot.topics['shadow_update'], message)
+            self.iot.publish(self.iot.topics['update_document'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
