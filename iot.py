@@ -70,6 +70,7 @@ class IoT(object):
         if not isinstance(message, str):
             message['state']['reported']['thing'] = self.client_id
             message = json.dumps(message)
+        logger.debug('publishing to %s', topic)
         try:
             self.mqtt_client.publish(topic, message, 1)
         except publishTimeoutException:
