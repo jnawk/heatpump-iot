@@ -97,7 +97,7 @@ class Heatpump(object):
 
     def _is_shutdown(self, temperature):
         if self._has_full_config():
-            logger.debug('%s < %s < %s: %r',
+            logger.debug('%s < %s < %s: is_shutdown: %r',
                          self._setpoints[H0],
                          temperature,
                          self._setpoints[C0],
