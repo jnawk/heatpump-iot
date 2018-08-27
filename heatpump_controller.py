@@ -94,7 +94,7 @@ class HeatpumpController(object):
             self.iot.topics['shadow_update_rejected'],
             self.shadow_update_rejected_callback)
         self.iot.subscribe(
-            self.iot.topics['update_state'],
+            self.iot.topics['update_document'],
             self.update_state_callback)
         self.iot.subscribe(
             self.gas_sensor.topics['update_document'],
@@ -202,7 +202,7 @@ class HeatpumpController(object):
         }
         logger.debug(message)
         try:
-            self.iot.publish(self.iot.topics['update_document'], message)
+            self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout, clearing local state')
             self.state.reset()
