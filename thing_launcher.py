@@ -1,5 +1,12 @@
 #!/usr/bin/env python
-"""Launcher"""
+"""
+thing_launcher.py
+
+Launcher for various things.
+
+Symlink the thing name to thing_launcher.py and some config will happen and the
+thing will be launched.
+"""
 import importlib
 import os
 import re

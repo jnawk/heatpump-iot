@@ -29,6 +29,7 @@ class Heatpump(object):
                            C1: None}
         self._current_action = None
         self.led_verify = None
+        self._heater = None
 
     @property
     def setpoints(self):
@@ -58,10 +59,23 @@ class Heatpump(object):
 
         self._setpoints = target
 
+    @property
+    def heater(self):
+        """The gas_sensor"""
+        return self._heater
+
+    @heater.setter
+    def heater(self, heater):
+        """Sets the gas_sensor"""
+        self._heater = heater
+
     def get_action(self, temperature):
         """Computes the action to take based on the current temperature"""
         if self._is_hot(temperature):
-            return START_COOLING
+            if self._heater_on():
+                logger.debug('heater is on, not cooling')
+            else:
+                return START_COOLING
 
         if self._is_cold(temperature):
             return START_HEATING
@@ -109,6 +123,12 @@ class Heatpump(object):
 
         if self._has_cooling() and temperature < self._setpoints[C0]:
             return True
+
+        return False
+
+    def _heater_on(self):
+        if self.heater is not None:
+            return self.heater.heater_is_on
 
         return False
 

@@ -68,6 +68,7 @@ class HeatpumpController(object):
         try:
             gas_sensor_config = config['gas_sensor']
             self.gas_sensor = gas_sensor.GasSensor(gas_sensor_config)
+            self.heatpump.heater = self.gas_sensor
         except KeyError:
             pass
 
