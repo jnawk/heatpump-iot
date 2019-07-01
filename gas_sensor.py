@@ -42,6 +42,8 @@ class GasSensor(iot.TemperatureSensor):
             return self.temperature.value > self.threshold
         except TypeError:
             return False
+        except AttributeError:
+            return False
 
     @property
     def topics(self):
