@@ -32,7 +32,9 @@ class GasSensor(iot.TemperatureSensor):
     def start(self):
         """Start the controller"""
         while True:
-            self.temperature = self.mcp9000.temperature
+            temperature = self.mcp9000.temperature
+            if temperature:
+                self.temperature = temperature
             time.sleep(2)
 
     @property
