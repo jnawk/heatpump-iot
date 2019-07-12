@@ -74,5 +74,6 @@ class GasSensor(iot.TemperatureSensor):
             self.iot.publish(self.iot.topics['shadow_update'], message)
         except publishTimeoutException:
             logger.warning('publish timeout')
+            self.iot.reconnect()
         except AttributeError:
             pass

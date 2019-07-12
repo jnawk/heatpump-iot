@@ -56,6 +56,9 @@ class IoT(object):
         mqtt_client.connect()
         self.mqtt_client = mqtt_client
 
+    def reconnect(self):
+        self.mqtt_client.connect()
+
     def subscribe(self, topic, callback):
         """Wrapper around mqtt subscribe"""
         def _callback(client, userdata, message):
